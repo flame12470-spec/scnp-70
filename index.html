@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>สภานักเรียน | Student Council</title>
+<title>เว็บไซต์สภานักเรียนอย่างเป็นทางการ | Student Council</title>
 <link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
 <style>
@@ -241,6 +241,147 @@ footer small{display:block;opacity:.85;font-size:clamp(12px,2vw,15px)}
 .hero .cap{z-index:4}
 .phero::before{z-index:1}
 .phero>*:not(.lpic):not(.fuzz){z-index:2}
+
+/* =========================================================
+   OFFICIAL SCHOOL DESIGN OVERRIDES
+   Keeps existing routes, forms, slider, countdown and JS logic.
+   Palette: school navy / purple / gold / white
+   ========================================================= */
+:root{
+  --navy:#24164b;
+  --blue:#4f378b;
+  --sky:#d6b85a;
+  --ink:#25233a;
+  --mute:#666477;
+  --bg:#f6f6fa;
+  --line:#e5e2ee;
+  --sh:0 5px 18px rgba(35,22,75,.08);
+}
+html{background:#fff}
+body{background:#fff;color:var(--ink);line-height:1.7}
+header{background:rgba(255,255,255,.97);border-top:4px solid var(--navy);border-bottom:1px solid var(--line);box-shadow:0 3px 12px rgba(20,15,45,.05)}
+header::after{display:none}
+.nav{max-width:1320px;padding-top:12px;padding-bottom:12px}
+.brand{letter-spacing:0;color:var(--navy)}
+nav a{border-radius:7px;color:#55536a;font-weight:600}
+nav a:hover{color:var(--navy);background:#f1eef8}
+nav a.on{background:#f1eef8;color:var(--navy);box-shadow:inset 0 -2px 0 var(--sky)}
+.burger{border-radius:8px;background:#f1eef8}
+.burger i{background:var(--navy)}
+
+/* Hero becomes a formal school landing page, retaining the slider */
+.hero{
+  min-height:min(760px,calc(100vh - 68px));
+  background:linear-gradient(135deg,#f7f6fb 0%,#fff 65%,#f4f0fa 100%);
+  color:var(--navy);
+  border-bottom:1px solid var(--line);
+  text-align:center;
+}
+.hero h1{padding-top:clamp(30px,5vw,58px);line-height:1.2}
+.hero h1 small{font-size:clamp(18px,2.6vw,30px);font-weight:600;letter-spacing:.04em;color:#62558a}
+.hero h1 span{font-size:clamp(34px,6vw,76px);text-shadow:none;color:var(--navy);margin-top:10px}
+.star{display:none}
+.stage{--gap:min(24vw,300px);min-height:300px;margin-top:clamp(10px,2vw,22px)}
+.sl{filter:drop-shadow(0 10px 16px rgba(30,20,60,.12));}
+.sl img{object-fit:contain}
+.cap{
+  background:linear-gradient(180deg,rgba(255,255,255,0) 0%,rgba(255,255,255,.88) 48%,#fff 100%);
+  color:var(--navy);
+}
+.cap b{font-size:clamp(21px,3.6vw,38px)}
+.cap span{color:#55536a}
+.cap a{border-color:var(--sky);color:var(--navy)}
+.dots i{background:#c9c4d8}
+.dots i.on{background:var(--navy)}
+.arr{background:rgba(36,22,75,.08);color:var(--navy);border:1px solid var(--line);backdrop-filter:none}
+.arr:hover{background:rgba(36,22,75,.14)}
+
+/* Sections, headings and buttons */
+section{padding:clamp(38px,6vw,68px) 0}
+.alt,.lalt{background:#f7f6fa}
+h2.t{color:var(--navy);font-size:clamp(23px,3.2vw,36px);letter-spacing:0}
+h2.t::after{content:"";display:block;width:52px;height:3px;background:var(--sky);margin:14px auto 0;border-radius:2px}
+.lead{color:#666477}
+.btn{background:var(--navy);border:1px solid var(--navy);border-radius:8px;box-shadow:none}
+.btn:hover{background:var(--blue);transform:translateY(-1px)}
+.grid3{gap:20px}
+.card{border-radius:12px;box-shadow:var(--sh);background:var(--navy)}
+.ph{background:linear-gradient(145deg,#35245f,#655398);color:#fff}
+.badge{border-radius:6px}
+.why{border-radius:12px}
+.why .ov{background:linear-gradient(180deg,transparent,rgba(20,14,43,.9))}
+.mem{border-radius:12px;background:linear-gradient(145deg,#35245f,#655398);box-shadow:var(--sh)}
+.mem .ov{background:linear-gradient(180deg,transparent,rgba(20,14,43,.92))}
+.mem .ov em{border-radius:5px}
+.rows{gap:18px}
+.track .mem{margin-right:18px}
+.ncard{border-radius:12px;box-shadow:var(--sh);border-color:var(--line)}
+.ncard:hover{transform:translateY(-2px)}
+.ncard img,.ncard .ph3{background:linear-gradient(145deg,#35245f,#655398)}
+.empty{border:1px dashed #d8d2e6;background:#faf9fc;border-radius:12px}
+
+/* Countdown: formal navy panel with restrained gold accent */
+.cd{
+  background:linear-gradient(135deg,#24164b 0%,#382568 100%);
+  color:#fff;padding-top:clamp(42px,6vw,68px);
+}
+.cd::before,.cd::after{display:none}
+.cd h2{font-size:clamp(23px,3.4vw,38px)}
+.dig{background:linear-gradient(180deg,#fff 0,#fff 50%,#eeebf5 50%,#eeebf5 100%);color:var(--navy);border:1px solid rgba(255,255,255,.25);border-radius:8px;box-shadow:0 5px 14px rgba(0,0,0,.15)}
+.unit small{color:#e9e2f5}
+
+/* Inner pages */
+.phero{background:linear-gradient(120deg,#24164b 0%,#49347c 100%);padding:clamp(38px,6vw,64px) 12px;border-bottom:4px solid var(--sky)}
+.phero::before{background:linear-gradient(90deg,rgba(25,15,54,.12),rgba(25,15,54,.02))}
+.phero h1{font-size:clamp(27px,4.5vw,46px)}
+.phero p{font-size:clamp(14px,1.8vw,18px)}
+.leader{padding:clamp(28px,5vw,48px) 0}
+.leader img,.leader .ph2{border-radius:12px;box-shadow:var(--sh)}
+.leader .pos{color:var(--blue)}
+.leader li::marker{color:var(--sky)}
+.pdf{border-radius:12px;box-shadow:var(--sh)}
+.modal{background:rgba(18,12,39,.7)}
+.mbox{border-radius:14px;background:linear-gradient(145deg,#49347c,#24164b);box-shadow:0 24px 70px rgba(0,0,0,.25)}
+.mbox.light{background:#fff}
+.mbox.imgonly img.big{border-radius:12px}
+.x{border-radius:8px;background:var(--navy)}
+.annc{background:linear-gradient(145deg,#49347c,#24164b)}
+.annc img.lg{filter:brightness(0) invert(1)}
+
+/* Official footer and subtle admin entry */
+footer{background:#24164b;color:#fff;border-top:4px solid var(--sky);padding-top:24px}
+footer .l{color:#fff}
+footer small{color:#e2dced}
+.ct>span{color:#fff}
+.ct a{border-radius:7px;color:var(--navy);box-shadow:none}
+.ct a:hover{background:#f2edf9}
+footer a[href="#/admin"]{color:#d8cde9!important;opacity:.8!important}
+footer a[href="#/admin"]:hover{color:#fff!important;opacity:1!important;text-decoration:underline!important}
+
+/* Inputs and form controls */
+input,textarea,select{font:inherit;max-width:100%}
+input:focus,textarea:focus,select:focus{outline:2px solid #8b79bc;outline-offset:1px}
+form button{cursor:pointer}
+@media(max-width:820px){
+  .nav{flex-direction:row;align-items:center}
+  nav{gap:3px}
+  .hero{min-height:auto}
+  .stage{min-height:min(85vw,440px);margin-top:10px}
+}
+@media(max-width:480px){
+  .brand{white-space:normal;line-height:1.25}
+  .hero h1{padding-top:26px}
+  .hero h1 small{font-size:18px}
+  .hero h1 span{font-size:clamp(30px,9vw,44px)}
+  .stage{min-height:min(92vw,390px)}
+  .cap{padding-top:48px}
+  footer .wrap{flex-direction:column;align-items:flex-start}
+}
+@media(prefers-reduced-motion:reduce){
+  .track{animation:none}
+  .card,.ncard,.btn{transition:none}
+}
+
 </style>
 </head>
 <body>
