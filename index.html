@@ -162,6 +162,27 @@ footer li a:hover{text-decoration:underline}
 .prev{max-height:90px;border-radius:10px;margin-top:8px}
 .tag{display:inline-block;font-size:11px;padding:2px 10px;border-radius:999px;background:var(--soft);color:var(--muted)}
 .tag.new{background:#fee2e2;color:var(--red)}.tag.done{background:#dcfce7;color:#166534}
+
+.nl{display:flex;align-items:center;gap:4px;min-width:0}
+.burger{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;flex:none}
+.burger:hover{background:rgba(127,127,127,.18)}
+.burger svg{width:24px;height:24px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round}
+.dbg{position:fixed;inset:0;z-index:250;background:rgba(10,10,20,.55);backdrop-filter:blur(3px);animation:fi .2s}
+.drw{position:absolute;left:0;top:0;bottom:0;width:min(86vw,320px);background:#fff;padding:20px 14px 30px;overflow:auto;animation:sl .25s;box-shadow:10px 0 40px rgba(0,0,0,.25)}
+@keyframes sl{from{transform:translateX(-100%)}}@keyframes fi{from{opacity:0}}
+.drw h5{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin:18px 10px 6px;font-weight:500}
+.drw a{display:flex;gap:12px;align-items:center;padding:12px 14px;border-radius:14px;font-size:15px;font-weight:500}
+.drw a:hover,.drw a.on{background:var(--soft)}.drw a.on{font-weight:700}
+.pg{padding-top:110px;min-height:72vh}
+.mems{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:16px}
+.mem{text-align:center}.av{width:96px;height:96px;border-radius:50%;object-fit:cover;margin:0 auto 12px;background:var(--soft);display:grid;place-items:center;font-size:38px}
+.dh{font-size:20px;margin:34px 0 14px;padding-left:12px;border-left:4px solid var(--red)}
+.stats{display:grid;gap:10px;grid-template-columns:repeat(3,1fr);margin-top:20px}
+.stats .ev{text-align:center}.stats b{font-size:30px;margin:0}
+.ev .tag{margin-bottom:6px}
+.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.h2 .ic{width:.9em;height:.9em;vertical-align:-.1em;margin-right:8px}.av .ic{width:40px;height:40px;color:var(--muted)}
+@media(max-width:600px){.pg{padding-top:92px}.mems{grid-template-columns:repeat(2,1fr)}.stats b{font-size:22px}}
 @media(max-width:900px){
   .news-grid,.events,.sv,.cal-layout,.fb,.fgrid,.two,.adm,.adm .fields{grid-template-columns:1fr}
   .nav .in{padding:0 16px}.wrap{padding:0 20px}
@@ -242,7 +263,7 @@ const SCHEMA=[
   ['fb_eyebrow','Eyebrow','text','Feedback'],['fb_title','หัวข้อ','text','แจ้งปัญหา / ข้อเสนอแนะ'],
   ['fb_sub','คำอธิบาย','text','พบปัญหาการใช้งาน หรืออยากเสนอไอเดียให้สภานักเรียน? ส่งถึงเราได้เลย'],
   ['fb_cats','ประเภทเรื่อง (1 บรรทัด = 1 ตัวเลือก)','textarea','ปัญหาการใช้งานเว็บไซต์\nข้อเสนอแนะกิจกรรม\nเรื่องทั่วไป\nอื่น ๆ'],
-  ['fb_btn','ข้อความปุ่มส่ง','text','➤ ส่งเรื่องถึงสภานักเรียน'],['fb_ok','ข้อความหลังส่งสำเร็จ','text','ส่งเรื่องถึงสภานักเรียนเรียบร้อยแล้ว ขอบคุณครับ'],
+  ['fb_btn','ข้อความปุ่มส่ง','text','ส่งเรื่องถึงสภานักเรียน'],['fb_ok','ข้อความหลังส่งสำเร็จ','text','ส่งเรื่องถึงสภานักเรียนเรียบร้อยแล้ว ขอบคุณครับ'],
   ['line_title','การ์ด LINE: หัวข้อ','text','ติดต่อเราทาง LINE'],
   ['line_text','การ์ด LINE: ข้อความ','textarea','อยากคุยกับสภานักเรียนแบบเร็ว ๆ? เพิ่มเพื่อนใน LINE Official Account แล้วทักหาเราได้เลย ทั้งเรื่องกิจกรรม การลงทะเบียน และข้อเสนอแนะ'],
   ['line_btn','การ์ด LINE: ข้อความปุ่ม','text','💬 เพิ่มเพื่อนใน LINE'],['line_url','การ์ด LINE: ลิงก์ (เว้นว่าง = ซ่อนการ์ด)','text','']]},
@@ -255,6 +276,7 @@ const SCHEMA=[
   ['ft_portal_text','ข้อความพอร์ทัล','textarea','สมัครใช้งานหรือเข้าสู่ระบบด้วยอีเมลของคุณ เพื่อดูข้อมูลเฉพาะนักเรียน'],
   ['ft_portal_btn','ปุ่มพอร์ทัล','text','เข้าสู่ระบบ →'],
   ['ft_copy','ลิขสิทธิ์','text','© 2026 Student Council โรงเรียนนาเชือกพิทยาสรรค์']]},
+ {g:'pages',title:'หน้าแผนที่ / แผนผังสถานที่',f:[['map_img','รูปแผนที่ / แผนผัง','image',''],['map_text','คำอธิบายใต้แผนที่','textarea','']]},
  {g:'login',title:'หน้าเข้าสู่ระบบ',f:[
   ['lg_back','ข้อความย้อนกลับ','text','กลับหน้าแรก'],['lg_eyebrow','Eyebrow','text','Student Council'],
   ['lg_title','หัวข้อ','text','ยินดีต้อนรับกลับ'],['lg_sub','คำอธิบาย','text','เข้าสู่ระบบด้วยอีเมลและรหัสผ่านเพื่อเข้าถึงพื้นที่นักเรียน'],
@@ -300,11 +322,17 @@ const TABLES={
   def:{kind:'green',featured:false}},
  ac_surveys:{title:'แบบสอบถาม',order:['created_at',false],label:r=>r.title,sub:r=>r.is_open?'เปิดอยู่':'ปิด',
   f:[['title','ชื่อแบบสอบถาม','text','full'],['url','ลิงก์แบบสอบถาม','text','full'],['is_open','เปิดให้ตอบ','bool'],['description','คำอธิบาย','textarea','full']],def:{is_open:true}},
+ ac_council:{title:'ธรรมเนียบสภา',order:['sort',true],label:r=>r.name,sub:r=>`${r.dept||''} · ${r.position||''}`,img:r=>r.image_url,
+  f:[['name','ชื่อ–นามสกุล','text'],['position','ตำแหน่ง','text'],['dept','ฝ่าย (ชื่อเดียวกัน = อยู่กลุ่มเดียวกัน)','text'],['sort','ลำดับ (เลขน้อยขึ้นก่อน)','number'],['image_url','รูปถ่าย','image','full']],def:{sort:0}},
+ ac_lost:{title:'ของหาย–ได้คืน',order:['created_at',false],label:r=>r.title,sub:r=>`${r.kind==='lost'?'ตามหา':'เจอของ'}${r.returned?' · คืนแล้ว':''}${r.visible===false?' · ซ่อน':''}`,img:r=>r.image_url,
+  f:[['title','สิ่งของ','text','full'],['kind','ประเภท','select',[['found','เจอของ (รอเจ้าของมารับ)'],['lost','ของหาย (ตามหา)']]],['place','สถานที่','text'],['returned','คืนเจ้าของแล้ว','bool'],['visible','แสดงบนเว็บ','bool'],['image_url','รูป','image','full'],['body','รายละเอียด / วิธีติดต่อ','textarea','full']],def:{kind:'found',returned:false,visible:true}},
+ ac_summary:{title:'สรุปก่อนสอบ',order:['created_at',false],label:r=>r.title,sub:r=>`${r.subject||''} ${r.level||''}${r.visible===false?' · ซ่อน':''}`,
+  f:[['title','ชื่อชีท / สรุป','text','full'],['subject','วิชา','text'],['level','ระดับชั้น (เช่น ม.4)','text'],['url','ลิงก์ไฟล์ (Drive / PDF)','text','full'],['visible','แสดงบนเว็บ','bool'],['body','คำอธิบาย','textarea','full']],def:{visible:true}},
  ac_links:{title:'ลิงก์ในฟุตเตอร์',order:['sort',true],label:r=>r.label,sub:r=>r.url,
   f:[['label','ข้อความ','text'],['url','ลิงก์','text'],['sort','ลำดับ','number']],def:{sort:0}}
 };
 /* ============ STATE ============ */
-const ST={S:{...DEF},news:[],events:[],surveys:[],links:[],socials:[],ready:false,ok:true,user:null,isAdmin:false,cal:(()=>{const d=new Date();d.setDate(1);return d})(),tab:'brand'};
+const ST={S:{...DEF},news:[],events:[],surveys:[],links:[],socials:[],council:[],lost:[],summary:[],stats:null,ready:false,ok:true,user:null,isAdmin:false,cal:(()=>{const d=new Date();d.setDate(1);return d})(),tab:'brand'};
 const T=k=>ST.S[k]??DEF[k]??'';
 
 async function loadPublic(){
@@ -322,6 +350,7 @@ async function loadPublic(){
     const so=await db.from('ac_socials').select('*').order('sort',{ascending:true});
     if(so.error)console.warn('ac_socials not ready (รัน supabase.sql ใหม่):',so.error);
     ST.socials=so.error?[]:so.data;
+    for(const [k,t,o] of [['council','ac_council','sort'],['lost','ac_lost','created_at'],['summary','ac_summary','created_at']]){const r=await db.from(t).select('*').order(o,{ascending:o==='sort'});ST[k]=r.error?[]:r.data}
     try{localStorage.setItem('ac_logo',safeImg(T('logo_url')))}catch(_){}
   }catch(err){
     console.warn('Supabase tables not ready:',err);
@@ -415,21 +444,119 @@ function goSection(id){
   else $(id)?.scrollIntoView({behavior:'smooth'});
 }
 function linkAttr(u){u=String(u||'').trim();if(/^#[a-z]+$/i.test(u))return `href="#/" data-go="${u.slice(1)}"`;const s=safeUrl(u);return `href="${e(s||'#/')}"${/^https?:/i.test(s)?' target="_blank" rel="noopener"':''}`}
-document.addEventListener('click',ev=>{const a=ev.target.closest('[data-go]');if(a){ev.preventDefault();goSection(a.dataset.go)}});
+document.addEventListener('click',ev=>{const a=ev.target.closest('[data-go]');if(a){ev.preventDefault();closeModal();goSection(a.dataset.go)}});
 
 function render(){
   if(!ST.ready)return showBoot();
   const r=route();
   if(r==='/login')return pLogin();
   if(r==='/admin')return pAdmin();
+  if(r.startsWith('/p/'))return pPage(r.slice(3));
   pHome();
 }
 
 /* ============ PUBLIC PAGES ============ */
+/* ===== เมนูข้าง / หน้าย่อย / สถิติผู้เข้าชม ===== */
+const vsText=()=>ST.stats?`เข้าชมทั้งหมด ${Number(ST.stats.total).toLocaleString('th-TH')} ครั้ง · ผู้เข้าใช้ ${Number(ST.stats.uniq).toLocaleString('th-TH')} คน · วันนี้ ${Number(ST.stats.today).toLocaleString('th-TH')} ครั้ง`:'';
+function footer(){return `<footer class="ft"><div class="wrap"><div class="fgrid">
+   <div><div class="brand" style="margin-bottom:6px">${(()=>{const l=safeImg(T('logo_url'));return l?`<img src="${e(l)}" alt="" style="height:34px">`:''})()}<div>${e(T('ft_name'))}<br><small style="font-weight:400;color:var(--muted)">${e(T('ft_en'))}</small></div></div>
+     ${T('ft_address')?`<ul style="margin-top:16px"><li>${e(T('ft_address'))}</li></ul>`:''}${ST.socials.filter(x=>x.url).length?`<ul class="soc-list">${ST.socials.filter(x=>x.url).map(x=>`<li><a ${linkAttr(socUrl(x))} title="${e((SOC[x.platform]||SOC.other)[0])}"><span class="soc-ic">${socIcon(x.platform)}</span><span>${e(x.label||(SOC[x.platform]||SOC.other)[0])}</span></a></li>`).join('')}</ul>`:''}</div>
+   <div>${ST.links.length?`<h4>${e(T('ft_links_title'))}</h4><ul>${ST.links.map(l=>`<li><a ${linkAttr(l.url)}>${e(l.label)}</a></li>`).join('')}</ul>`:''}</div>
+   <div><h4>สถิติผู้เข้าชม</h4><p class="sub" id="vs">${vsText()}</p></div>
+  </div><div class="copy"><span>${e(T('ft_copy'))}</span></div></div></footer>`}
+const navHtml=s=>`<header class="nav${s?' solid':''}" id="nav"><div class="in"><div class="nl"><button class="burger" onclick="openMenu()" aria-label="เมนู"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>${brandHtml()}</div>${navRight()}</div></header>`;
+const ICONS={
+home:'<path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/>',
+news:'<path d="M4 5h13v14H6a2 2 0 0 1-2-2z"/><path d="M17 8h3v9a2 2 0 0 1-2 2"/><path d="M8 9h5M8 13h5"/>',
+star:'<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/>',
+survey:'<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4h6v3H9zM9 12h6M9 16h4"/>',
+cal:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+mail:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
+users:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><path d="M16 4.7a3.5 3.5 0 0 1 0 6.6M18 14.4c2 .8 3.5 2.6 3.5 5.6"/>',
+chat:'<path d="M21 12a8 8 0 0 1-11.5 7.2L3 21l1.8-5.5A8 8 0 1 1 21 12z"/>',
+bulb:'<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/>',
+music:'<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>',
+alert:'<path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18h.01"/>',
+search:'<circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/>',
+book:'<path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 19V5M8 7h7"/>',
+map:'<path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/>',
+admin:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/>',
+out:'<path d="M9 4H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4M16 8l4 4-4 4M20 12H9"/>',
+user:'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/>'};
+const ic=n=>`<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n]||''}</svg>`;
+const PAGES=[
+ ['council','users','ธรรมเนียบสภา','รายชื่อสมาชิกสภานักเรียน แยกตามฝ่าย'],
+ ['tell','chat','ฝากบอกฝ่ายพี่สภา','ฝากข้อความถึงฝ่ายต่าง ๆ ของสภานักเรียน'],
+ ['propose','bulb','เสนอสภาให้ทำ','มีไอเดียอยากให้สภาจัดหรือแก้ไขอะไร บอกเราได้เลย'],
+ ['song','music','ขอเพลง','ขอเพลงที่อยากฟังในช่วงพักหรือกิจกรรม'],
+ ['report','alert','แจ้งเหตุ','แจ้งเหตุหรือปัญหาในโรงเรียน เพื่อให้สภาช่วยประสานงาน'],
+ ['lost','search','ของหาย–ได้คืน','ตามหาของหาย หรือแจ้งว่าเจอของ'],
+ ['summary','book','สรุปก่อนสอบ','รวมชีทสรุปและแหล่งอ่านก่อนสอบ'],
+ ['map','map','แผนที่ / แผนผังสถานที่','แผนผังอาคารและสถานที่ในโรงเรียน']];
+const FORMS={
+ tell:{cat:'ฝากบอกฝ่ายพี่สภา',f:[['to','ฝากถึงฝ่าย','dept'],['msg','ข้อความ','area',1]]},
+ propose:{cat:'เสนอสภาให้ทำ',f:[['subject','เรื่องที่เสนอ','text',1],['msg','รายละเอียด / เหตุผล','area',1]]},
+ song:{cat:'ขอเพลง',f:[['song','ชื่อเพลง','text',1],['artist','ศิลปิน','text'],['msg','ข้อความถึงใคร (ไม่บังคับ)','area']]},
+ report:{cat:'แจ้งเหตุ',f:[['subject','เรื่อง','text',1],['place','สถานที่เกิดเหตุ','text'],['msg','รายละเอียด','area',1]]},
+ lost:{cat:'ของหาย–ได้คืน',f:[['type','ประเภท',['ของหาย','เจอของ'],1],['subject','สิ่งของ','text',1],['place','สถานที่','text'],['contact','ช่องทางติดต่อ','text',1],['msg','รายละเอียด','area']]}};
+function openMenu(){
+  const cur=route(),sec=[['news','news','ข่าวประชาสัมพันธ์'],['upcoming','star','กิจกรรมที่กำลังจะมาถึง'],['surveys','survey','แบบสอบถาม'],['calendar','cal','ปฏิทินการศึกษา'],['feedback','mail','แจ้งปัญหา / ข้อเสนอแนะ']];
+  $('modalRoot').innerHTML=`<div class="dbg" id="mbg"><nav class="drw"><button class="mx" onclick="closeModal()" aria-label="ปิด">✕</button>
+   <a href="#/" class="${cur==='/'?'on':''}" onclick="closeModal()">${ic('home')}หน้าแรก</a><h5>หน้าหลัก</h5>
+   ${sec.map(([k,i,l])=>`<a href="#/" data-go="${k}">${ic(i)}${l}</a>`).join('')}<h5>บริการ / หน้าต่าง ๆ</h5>
+   ${PAGES.map(([k,i,l])=>`<a href="#/p/${k}" class="${cur==='/p/'+k?'on':''}" onclick="closeModal()">${ic(i)}${l}</a>`).join('')}
+   ${ST.isAdmin?`<h5>ผู้ดูแล</h5><a href="#/admin" onclick="closeModal()">${ic('admin')}แอดมิน</a>`:''}${ST.user?`<a href="#/" onclick="closeModal();logout()">${ic('out')}ออกจากระบบ</a>`:''}</nav></div>`;
+  $('mbg').onclick=ev=>{if(ev.target.id==='mbg')closeModal()};document.body.style.overflow='hidden';
+}
+function formHtml(k){const F=FORMS[k],depts=[...new Set(ST.council.map(m=>m.dept).filter(Boolean))];
+  const fld=([n,l,t,r])=>{const q=`name="${n}"${r?' required':''}`;
+    if(t==='area')return `<label class="l">${l}<textarea ${q} maxlength="2000"></textarea></label>`;
+    if(Array.isArray(t))return `<label class="l">${l}<select ${q}>${t.map(o=>`<option>${e(o)}</option>`).join('')}</select></label>`;
+    if(t==='dept')return `<label class="l">${l}<select ${q}><option>ทุกฝ่าย</option>${depts.map(d=>`<option>${e(d)}</option>`).join('')}</select></label>`;
+    return `<label class="l">${l}<input ${q} maxlength="200"></label>`};
+  return `<div class="panel" style="margin-top:28px"><form class="f" data-form="${k}"><label class="l">ชื่อ (ไม่บังคับ)<input name="_name" maxlength="120"></label>${F.f.map(fld).join('')}<div><button class="btn btn-red" type="submit">ส่งเรื่อง</button></div></form></div>`}
+async function submitForm(ev){
+  ev.preventDefault();const f=ev.target,F=FORMS[f.dataset.form],fd=new FormData(f),b=f.querySelector('button'),v=n=>String(fd.get(n)||'').trim();b.disabled=true;
+  const detail=F.f.map(([n,l])=>v(n)?`${l}: ${v(n)}`:'').filter(Boolean).join('\n');
+  const {error}=await db.from('ac_feedback').insert({name:v('_name')||'ไม่ระบุชื่อ',email:ST.user?.email||null,category:F.cat,subject:v('subject')||v('song')||v('to')||v('type')||null,detail});
+  b.disabled=false;if(error){toast('ส่งไม่สำเร็จ กรุณาลองใหม่');console.warn(error);return}
+  f.reset();toast('ส่งเรียบร้อยแล้ว ขอบคุณครับ');
+}
+function vCouncil(){const g={};ST.council.forEach(m=>(g[m.dept||'อื่น ๆ']??=[]).push(m));
+  return Object.keys(g).length?Object.entries(g).map(([d,ms])=>`<h3 class="dh">${e(d)}</h3><div class="mems">${ms.map(m=>`<div class="ev mem">${safeImg(m.image_url)?`<img class="av" src="${e(m.image_url)}" alt="" loading="lazy">`:`<div class="av">${ic('user')}</div>`}<b>${e(m.name)}</b><span class="sub">${e(m.position||'')}</span></div>`).join('')}</div>`).join(''):`<div class="empty">ยังไม่มีข้อมูล</div>`}
+function vLost(){const L=ST.lost.filter(x=>x.visible!==false);
+  return L.length?`<div class="events">${L.map(x=>`<div class="ev">${safeImg(x.image_url)?`<img src="${e(x.image_url)}" alt="" loading="lazy" style="border-radius:14px;margin-bottom:10px;max-height:180px;width:100%;object-fit:cover">`:''}<span class="tag ${x.returned?'done':'new'}">${x.returned?'คืนเจ้าของแล้ว':x.kind==='lost'?'ตามหา':'เจอของ'}</span><b>${e(x.title)}</b><span class="sub">${e(x.place||'')}</span><p class="sub" style="font-size:13px;white-space:pre-line">${e(x.body||'')}</p></div>`).join('')}</div>`:`<div class="empty">ยังไม่มีรายการ</div>`}
+function sumList(q){q=String(q||'').toLowerCase();const L=ST.summary.filter(x=>x.visible!==false&&`${x.title} ${x.subject} ${x.level}`.toLowerCase().includes(q));
+  return L.length?`<div class="events">${L.map(x=>`<div class="ev"><span class="tag">${e([x.subject,x.level].filter(Boolean).join(' · ')||'ทั่วไป')}</span><b>${e(x.title)}</b><p class="sub" style="font-size:13px;margin-bottom:12px">${e(x.body||'')}</p>${x.url?`<a class="btn btn-dark btn-sm" ${linkAttr(x.url)}>เปิดอ่าน →</a>`:''}</div>`).join('')}</div>`:`<div class="empty">ไม่พบรายการ</div>`}
+const vSummary=()=>`<input placeholder="ค้นหาวิชา / ระดับชั้น / ชื่อชีท" oninput="$('sl').innerHTML=sumList(this.value)" style="margin-bottom:20px"><div id="sl">${sumList('')}</div>`;
+const vMap=()=>`${safeImg(T('map_img'))?`<a href="${e(T('map_img'))}" target="_blank" rel="noopener"><img src="${e(T('map_img'))}" alt="แผนที่โรงเรียน" style="width:100%;border-radius:24px;border:1px solid var(--line)"></a><p class="sub" style="margin-top:8px;font-size:13px">แตะรูปเพื่อดูภาพขยาย</p>`:'<div class="empty">ยังไม่ได้อัปโหลดแผนที่</div>'}<p class="sub" style="margin-top:16px;white-space:pre-line">${e(T('map_text'))}</p>`;
+function pPage(k){
+  const p=PAGES.find(x=>x[0]===k);if(!p){location.hash='#/';return}
+  const body=k==='council'?vCouncil():k==='map'?vMap():k==='summary'?vSummary():(k==='lost'?vLost():'')+formHtml(k);
+  $('app').innerHTML=`${navHtml(true)}<main class="wrap pg"><div class="head"><h2 class="h2">${ic(p[1])}${p[2]}</h2><p class="sub">${p[3]}</p></div>${body}</main>${footer()}`;
+  onscroll=null;document.querySelectorAll('[data-form]').forEach(f=>f.onsubmit=submitForm);
+}
+/* สถิติผู้เข้าชม */
+const vid=()=>{try{let v=localStorage.getItem('ac_vid');if(!v){v=(crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random().toString(36).slice(2));localStorage.setItem('ac_vid',v)}return v}catch(_){return 'anon'}};
+async function track(){
+  try{if(!route().startsWith('/admin'))await db.from('ac_visits').insert({vid:vid(),email:ST.user?.email||null,path:route()});
+    const r=await db.rpc('ac_visit_stats');if(!r.error&&r.data){ST.stats=r.data;const el=$('vs');if(el)el.textContent=vsText()}}catch(_){}
+}
+async function admVisits(m){
+  const {data,error}=await db.from('ac_visits').select('*').order('created_at',{ascending:false}).limit(1000);
+  if(error){m.innerHTML=`<h1>สถิติผู้เข้าชม</h1><div class="card2">โหลดไม่ได้: ${e(error.message)}<br><small class="sub">รัน supabase_add.sql ก่อน</small></div>`;return}
+  const st=ST.stats||{total:data.length,uniq:new Set(data.map(r=>r.vid)).size,today:0},by={};
+  data.forEach(r=>{const k=r.email||'ผู้เยี่ยมชมทั่วไป #'+String(r.vid).slice(0,6);(by[k]??={n:0,last:r.created_at}).n++});
+  m.innerHTML=`<h1>สถิติผู้เข้าชม</h1><p class="sub">ตัวเลขรวมมาจากฐานข้อมูล · รายชื่อด้านล่างอิง 1,000 ครั้งล่าสุด</p>
+   <div class="stats"><div class="ev"><b>${Number(st.total).toLocaleString('th-TH')}</b><span class="sub">เข้าชมทั้งหมด (ครั้ง)</span></div><div class="ev"><b>${Number(st.uniq).toLocaleString('th-TH')}</b><span class="sub">ผู้เข้าใช้ (คน/เครื่อง)</span></div><div class="ev"><b>${Number(st.today).toLocaleString('th-TH')}</b><span class="sub">วันนี้ (ครั้ง)</span></div></div>
+   <div class="card2"><b>ผู้เข้าใช้ (มากที่สุด)</b>${Object.entries(by).sort((a,b)=>b[1].n-a[1].n).slice(0,30).map(([k,v])=>`<div class="list-row"><div><b>${e(k)}</b><small>ล่าสุด ${e(new Date(v.last).toLocaleString('th-TH'))}</small></div><span class="tag">${v.n} ครั้ง</span></div>`).join('')||'<p class="sub">ยังไม่มีข้อมูล</p>'}</div>
+   <div class="card2"><b>เข้าชมล่าสุด</b>${data.slice(0,50).map(r=>`<div class="list-row"><div><b>${e(r.email||'ผู้เยี่ยมชมทั่วไป')}</b><small>${e(new Date(r.created_at).toLocaleString('th-TH'))} · ${e(r.path||'/')}</small></div></div>`).join('')}</div>`;
+}
+
 const brandHtml=()=>{const l=safeImg(T('logo_url'));return `<a class="brand" href="#/">${l?`<img src="${e(l)}" alt="">`:LOGO_SVG}${e(T('brand_name'))}</a>`};
 function navRight(){
-  if(ST.user)return `<div class="nav-r">${ST.isAdmin?`<a class="btn btn-sm btn-google" href="#/admin">⚙ แอดมิน</a>`:''}<span style="font-size:13px;opacity:.9">${e(ST.user.email)}${(ST.user.user_metadata?.grade&&ST.user.user_metadata?.room)?` · ${e(ST.user.user_metadata.grade)}/${e(ST.user.user_metadata.room)}`:''}</span><button class="btn btn-sm btn-google" onclick="logout()">ออกจากระบบ</button></div>`;
-  return `<div class="nav-r"><a class="btn btn-google" href="#/login">${e(T('lg_nav_btn'))}</a></div>`;
+  if(ST.user)return `<div class="nav-r">${ST.isAdmin?`<a class="btn btn-sm btn-google" href="#/admin">${ic('admin')}แอดมิน</a>`:''}<span style="font-size:13px;opacity:.9">${e(ST.user.email)}${(ST.user.user_metadata?.grade&&ST.user.user_metadata?.room)?` · ${e(ST.user.user_metadata.grade)}/${e(ST.user.user_metadata.room)}`:''}</span><button class="btn btn-sm btn-google" onclick="logout()">ออกจากระบบ</button></div>`;
+  return `<div class="nav-r"></div>`; /* ปุ่มเข้าสู่ระบบซ่อนไว้ — แอดมินเข้าที่ #/login */
 }
 function newsCard(n){
   const img=safeImg(n.image_url);
@@ -460,7 +587,7 @@ function pHome(){
   const bg=safeImg(T('hero_bg'));
   const btn=(n,cls)=>(T(`btn${n}_text`)&&T(`btn${n}_link`))?`<a class="btn ${cls}" ${linkAttr(T(`btn${n}_link`))}>${e(T(`btn${n}_text`))}</a>`:'';
   $('app').innerHTML=`
-  <header class="nav" id="nav"><div class="in">${brandHtml()}${navRight()}</div></header>
+  ${navHtml(false)}
   <section class="hero" style="${bg?`background-image:url('${e(bg)}')`:''}"><div class="wrap">
     <div class="eyebrow" style="color:#fff;opacity:.85">${e(T('hero_eyebrow'))}</div>
     <h1>${e(T('hero_title')).replace(/\n/g,'<br>')}</h1><p>${e(T('hero_sub'))}</p>
@@ -485,12 +612,7 @@ function pHome(){
         <div><button class="btn btn-red" type="submit">${e(T('fb_btn'))}</button></div></form></div>
        ${T('line_url')?`<div class="panel line-card"><div><h3 style="font-size:20px;margin-bottom:10px">${e(T('line_title'))}</h3><p class="sub">${e(T('line_text'))}</p></div><a class="btn btn-line" ${linkAttr(T('line_url'))}>${e(T('line_btn'))}</a></div>`:''}</div></section>
   </main>
-  <footer class="ft"><div class="wrap"><div class="fgrid">
-   <div><div class="brand" style="margin-bottom:6px">${(()=>{const l=safeImg(T('logo_url'));return l?`<img src="${e(l)}" alt="" style="height:34px">`:''})()}<div>${e(T('ft_name'))}<br><small style="font-weight:400;color:var(--muted)">${e(T('ft_en'))}</small></div></div>
-     ${T('ft_address')?`<ul style="margin-top:16px"><li>📍 ${e(T('ft_address'))}</li></ul>`:''}${ST.socials.filter(x=>x.url).length?`<ul class="soc-list">${ST.socials.filter(x=>x.url).map(x=>`<li><a ${linkAttr(socUrl(x))} title="${e((SOC[x.platform]||SOC.other)[0])}"><span class="soc-ic">${socIcon(x.platform)}</span><span>${e(x.label||(SOC[x.platform]||SOC.other)[0])}</span></a></li>`).join('')}</ul>`:''}</div>
-   <div>${ST.links.length?`<h4>${e(T('ft_links_title'))}</h4><ul>${ST.links.map(l=>`<li><a ${linkAttr(l.url)}>${e(l.label)}</a></li>`).join('')}</ul>`:''}</div>
-   <div><h4>${e(T('ft_portal_title'))}</h4><p class="sub" style="font-size:13.5px">${e(T('ft_portal_text'))}</p>${ST.user?'':`<a class="btn btn-dark btn-sm" style="margin-top:14px" href="#/login">${e(T('ft_portal_btn'))}</a>`}</div>
-  </div><div class="copy"><span>${e(T('ft_copy'))}</span><a href="#/admin">ผู้ดูแลระบบ</a></div></div></footer>`;
+${footer()}`;
   const nav=$('nav');const sc=()=>nav.classList.toggle('solid',scrollY>60);sc();onscroll=sc;
   document.querySelectorAll('[data-news]').forEach(b=>b.onclick=()=>openNews(b.dataset.news));
   $('fbForm').onsubmit=sendFeedback;
@@ -547,7 +669,7 @@ function pLogin(){
 }
 
 /* ============ ADMIN ============ */
-const NAVS=[['เนื้อหาเว็บไซต์',SCHEMA.map(s=>[s.g,s.title])],['ข้อมูล',[['ac_news','ข่าวประชาสัมพันธ์'],['ac_events','กิจกรรม / ปฏิทิน'],['ac_surveys','แบบสอบถาม'],['ac_socials','โซเชียล / ช่องทางติดต่อ'],['ac_links','ลิงก์ฟุตเตอร์']]],['ระบบ',[['inbox','กล่องข้อเสนอแนะ'],['admins','ผู้ดูแลระบบ']]]];
+const NAVS=[['เนื้อหาเว็บไซต์',SCHEMA.map(s=>[s.g,s.title])],['ข้อมูล',[['ac_news','ข่าวประชาสัมพันธ์'],['ac_events','กิจกรรม / ปฏิทิน'],['ac_surveys','แบบสอบถาม'],['ac_socials','โซเชียล / ช่องทางติดต่อ'],['ac_links','ลิงก์ฟุตเตอร์']]],['หน้าต่าง ๆ',[['ac_council','ธรรมเนียบสภา'],['ac_lost','ของหาย–ได้คืน'],['ac_summary','สรุปก่อนสอบ']]],['ระบบ',[['visits','สถิติผู้เข้าชม'],['inbox','กล่องข้อความ / เรื่องที่ส่งเข้ามา'],['admins','ผู้ดูแลระบบ']]]];
 async function pAdmin(){
   if(!ST.user){sessionStorage.setItem('loginErr','กรุณาเข้าสู่ระบบก่อนเข้าพื้นที่ผู้ดูแล');location.hash='#/login';return}
   if(!ST.isAdmin){$('app').innerHTML=`<div class="page-login"><a class="back" href="#/">← กลับหน้าแรก</a><div class="lbox"><h1 style="font-size:30px">ไม่มีสิทธิ์ผู้ดูแล</h1><p class="sub" style="margin-top:12px">บัญชี ${e(ST.user.email)} ยังไม่ได้อยู่ในรายชื่อผู้ดูแล<br>ให้แอดมินเดิมเพิ่มอีเมลนี้ที่เมนู “ผู้ดูแลระบบ” หรือเพิ่มในตาราง ac_admins</p><p style="margin-top:20px"><button class="btn btn-dark btn-sm" onclick="logout()">ออกจากระบบ</button></p></div></div>`;return}
@@ -558,6 +680,7 @@ async function pAdmin(){
   const t=ST.tab,m=$('admMain');
   if(SCHEMA.find(s=>s.g===t))return admSettings(t,m);
   if(TABLES[t])return admTable(t,m);
+  if(t==='visits')return admVisits(m);
   if(t==='inbox')return admInbox(m);
   if(t==='admins')return admAdmins(m);
 }
@@ -652,7 +775,7 @@ async function admAdmins(m){
 }
 
 /* ============ BOOT ============ */
-(async()=>{try{await loadPublic();await refreshUser()}catch(x){console.warn(x)}ST.ready=true;render()})();
+(async()=>{try{await loadPublic();await refreshUser()}catch(x){console.warn(x)}ST.ready=true;render();track()})();
 </script>
 </body>
 </html>
