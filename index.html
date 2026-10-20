@@ -112,7 +112,15 @@ footer li a:hover{text-decoration:underline}
 .lbox .eyebrow{margin:18px 0 12px}
 .lbox h1{font-size:44px;font-weight:700;margin-bottom:10px}
 .lcard{margin-top:36px;border:1px solid var(--line);border-radius:36px;padding:34px;box-shadow:0 14px 50px rgba(0,0,0,.07)}
-.lcard .gbtn{width:100%;border:1px solid var(--line);padding:18px;font-size:17px;background:#fff}
+.lcard .abtn{width:100%;padding:16px;font-size:16px;margin-top:22px}
+.lcard form label{display:grid;gap:6px;text-align:left;font-size:13px;font-weight:600;margin-top:14px}
+.atabs{display:grid;grid-template-columns:1fr 1fr;background:var(--soft);border-radius:999px;padding:5px;margin-bottom:8px}
+.atabs button{padding:11px;border-radius:999px;font-weight:600;font-size:14px;color:var(--muted)}
+.atabs button.on{background:#fff;color:var(--ink);box-shadow:0 2px 10px rgba(0,0,0,.08)}
+.alink{background:none;color:var(--muted);text-decoration:underline;font-size:14px;margin-top:16px}
+.alink:hover{color:var(--ink)}
+.okm{color:var(--green);margin-top:14px;font-size:14px}
+#amsg:empty{display:none}
 .lcard small{display:block;margin-top:18px;color:var(--muted)}
 .err{color:var(--red);margin-top:14px;font-size:14px}
 .modal{position:fixed;inset:0;z-index:200;background:rgba(10,10,20,.65);backdrop-filter:blur(4px);display:flex;padding:16px;overflow:auto}
@@ -175,7 +183,6 @@ const toast=m=>{const t=$('toast');t.textContent=m;t.classList.add('show');clear
 const fdate=v=>v?new Date(v+'T00:00:00').toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'numeric'}):'';
 const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 
-const GOOGLE_SVG='<svg class="g" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.2 5.5-4.7 7.2l7.5 5.8c4.4-4.1 7-10.1 7-17.5z"/><path fill="#FBBC05" d="M10.5 28.7c-.5-1.5-.8-3-.8-4.7s.3-3.2.8-4.7l-7.9-6.1C.9 16.5 0 20.1 0 24s.9 7.5 2.6 10.8l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.5-5.8c-2.1 1.4-4.8 2.3-8.4 2.3-6.3 0-11.6-4.1-13.5-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg>';
 const LOGO_SVG='<svg viewBox="0 0 26 40"><defs><linearGradient id="gg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f3d27a"/><stop offset="1" stop-color="#a87a1f"/></linearGradient></defs><path d="M13 0 26 20 13 40 0 20Z" fill="url(#gg)"/><path d="M13 8 20 20 13 32 6 20Z" fill="none" stroke="#fff5" stroke-width="1.5"/></svg>';
 
 /* ============ SETTINGS SCHEMA: ทุกข้อความ/โลโก้/สี แก้ได้จากแอดมิน ============ */
@@ -229,15 +236,15 @@ const SCHEMA=[
   ['so_fb','ปุ่มโซเชียล: Facebook ลิงก์','text',''],['so_ig','ปุ่มโซเชียล: Instagram ลิงก์','text',''],['so_line','ปุ่มโซเชียล: LINE ลิงก์','text',''],['so_web','ปุ่มโซเชียล: เว็บไซต์ ลิงก์','text',''],
   ['ft_links_title','หัวข้อคอลัมน์ลิงก์','text','ช่องทางอื่น ๆ'],
   ['ft_portal_title','หัวข้อพอร์ทัล','text','พอร์ทัลสภานักเรียน'],
-  ['ft_portal_text','ข้อความพอร์ทัล','textarea','เข้าสู่ระบบด้วยอีเมลโรงเรียน @ndlp.go.th เพื่อดูข้อมูลเฉพาะนักเรียน'],
+  ['ft_portal_text','ข้อความพอร์ทัล','textarea','สมัครใช้งานหรือเข้าสู่ระบบด้วยอีเมลของคุณ เพื่อดูข้อมูลเฉพาะนักเรียน'],
   ['ft_portal_btn','ปุ่มพอร์ทัล','text','เข้าสู่ระบบ →'],
   ['ft_copy','ลิขสิทธิ์','text','© 2026 Student Council โรงเรียนนาเชือกพิทยาสรรค์']]},
  {g:'login',title:'หน้าเข้าสู่ระบบ',f:[
   ['lg_back','ข้อความย้อนกลับ','text','กลับหน้าแรก'],['lg_eyebrow','Eyebrow','text','Student Council'],
-  ['lg_title','หัวข้อ','text','ยินดีต้อนรับกลับ'],['lg_sub','คำอธิบาย','text','เข้าสู่ระบบด้วยบัญชี Google ของโรงเรียนเพื่อเข้าถึงพื้นที่นักเรียน'],
-  ['lg_btn','ข้อความปุ่ม','text','เข้าสู่ระบบด้วย Google'],['lg_nav_btn','ข้อความปุ่มบนแถบเมนู','text','เข้าสู่ระบบด้วย Google'],
-  ['lg_domain','โดเมนอีเมลที่อนุญาต','text','@ndlp.go.th'],
-  ['lg_note','หมายเหตุใต้ปุ่ม','text','เฉพาะบัญชี @ndlp.go.th เท่านั้น'],
+  ['lg_title','หัวข้อ','text','ยินดีต้อนรับกลับ'],['lg_sub','คำอธิบาย','text','เข้าสู่ระบบด้วยอีเมลและรหัสผ่านเพื่อเข้าถึงพื้นที่นักเรียน'],
+  ['lg_btn','ข้อความปุ่มเข้าสู่ระบบ','text','เข้าสู่ระบบ'],['lg_nav_btn','ข้อความปุ่มบนแถบเมนู','text','เข้าสู่ระบบ / สมัครใช้งาน'],
+  ['lg_domain','จำกัดโดเมนอีเมลที่สมัครได้ (เว้นว่าง = ทุกอีเมลสมัครได้)','text',''],
+  ['lg_note','หมายเหตุใต้ปุ่ม','text','ยังไม่มีบัญชี? กด “สมัครใช้งาน” ด้านบน'],
   ['lg_terms','ข้อความล่างสุด','text','การเข้าสู่ระบบถือว่ายอมรับข้อกำหนดการใช้งานของสภานักเรียน']]}
 ];
 const DEF={};SCHEMA.forEach(s=>s.f.forEach(([k,,,d])=>DEF[k]=d));
@@ -291,26 +298,74 @@ function applyTheme(){
   document.title=T('site_title');
 }
 
-/* ============ AUTH ============ */
-async function refreshUser(){
-  const {data}=await db.auth.getSession();
-  ST.user=data.session?.user||null;ST.isAdmin=false;
+/* ============ AUTH (อีเมล + รหัสผ่าน) ============ */
+/* ลิงก์ในอีเมลที่หมดอายุ/ใช้แล้ว จะส่ง error กลับมาทาง hash */
+(()=>{const h=location.hash;if(/error_description=/.test(h)){const q=new URLSearchParams(h.replace(/^#/,''));
+  sessionStorage.setItem('loginErr',q.get('error_code')==='otp_expired'?'ลิงก์หมดอายุหรือถูกใช้ไปแล้ว — กรุณาขอลิงก์ใหม่':(q.get('error_description')||'ลิงก์ไม่ถูกต้อง'));
+  history.replaceState(null,'',location.pathname+'#/login')}})();
+async function refreshUser(session){
+  if(session===undefined){const {data}=await db.auth.getSession();session=data.session}
+  ST.user=session?.user||null;ST.isAdmin=false;
   if(ST.user){try{const r=await db.from('ac_admins').select('email');ST.isAdmin=!r.error&&r.data.length>0}catch(_){}}
 }
-const domainOk=em=>String(em||'').toLowerCase().endsWith(String(T('lg_domain')||'@ndlp.go.th').toLowerCase());
-async function googleLogin(){
-  const dom=String(T('lg_domain')).replace('@','');
-  const {error}=await db.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin+location.pathname,queryParams:{hd:dom,prompt:'select_account'}}});
-  if(error)toast('เข้าสู่ระบบไม่สำเร็จ: '+error.message);
+const domainOk=em=>{let d=String(T('lg_domain')||'').trim().toLowerCase();if(!d)return true;if(d[0]!=='@')d='@'+d;return String(em||'').toLowerCase().endsWith(d)};
+const MIN_PW=8;
+function authMsg(m){m=String(m||'');
+  if(/invalid login/i.test(m))return 'อีเมลหรือรหัสผ่านไม่ถูกต้อง';
+  if(/not confirmed/i.test(m))return 'ยังไม่ได้ยืนยันอีเมล — กรุณากดลิงก์ในอีเมลที่ส่งให้ตอนสมัคร';
+  if(/already (been )?registered/i.test(m))return 'อีเมลนี้สมัครไว้แล้ว — ลองเข้าสู่ระบบ หรือกด “ลืมรหัสผ่าน”';
+  if(/same password|different from the old/i.test(m))return 'รหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสเดิม';
+  if(/password.*(least|short|weak)|weak/i.test(m))return 'รหัสผ่านสั้นหรือคาดเดาง่ายเกินไป — ใช้อย่างน้อย '+MIN_PW+' ตัวอักษร';
+  if(/rate limit|too many|only request this after|security purposes/i.test(m))return 'ทำรายการถี่เกินไป กรุณารอสักครู่แล้วลองใหม่';
+  if(/session missing/i.test(m))return 'ลิงก์หมดอายุ — กรุณากด “ลืมรหัสผ่าน” เพื่อขอลิงก์ใหม่';
+  return m||'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง'}
+function amsg(t,m,resend){const el=$('amsg');if(!el)return;
+  el.innerHTML=`<div class="${t==='ok'?'okm':'err'}">${e(m)}</div>${resend?`<button type="button" class="alink" id="resend">ส่งอีเมลยืนยันอีกครั้ง</button>`:''}`;
+  if(resend)$('resend').onclick=async()=>{const {error}=await db.auth.resend({type:'signup',email:resend,options:{emailRedirectTo:location.origin+location.pathname}});
+    error?amsg('err',authMsg(error.message),resend):amsg('ok','ส่งอีเมลยืนยันแล้ว กรุณาตรวจกล่องจดหมาย (รวมถึงสแปม)')}}
+async function doIn(f){
+  const em=String(f.get('email')).trim();
+  const {error}=await db.auth.signInWithPassword({email:em,password:f.get('password')});
+  if(error)return amsg('err',authMsg(error.message),/not confirmed/i.test(error.message)?em:'');
+  toast('เข้าสู่ระบบแล้ว');
 }
-async function logout(){await db.auth.signOut();ST.user=null;ST.isAdmin=false;location.hash='#/';render();toast('ออกจากระบบแล้ว')}
-db.auth.onAuthStateChange(async ev=>{
-  if(ev==='SIGNED_IN'||ev==='INITIAL_SESSION'){
-    await refreshUser();
-    if(ST.user&&!ST.isAdmin&&!domainOk(ST.user.email)){
-      await db.auth.signOut();ST.user=null;sessionStorage.setItem('loginErr','บัญชีนี้ไม่ได้รับอนุญาต — ใช้ได้เฉพาะ '+T('lg_domain'));location.hash='#/login';
-    }
-    render();
+async function doUp(f){
+  const em=String(f.get('email')).trim(),pw=String(f.get('password'));
+  if(!domainOk(em))return amsg('err','สมัครได้เฉพาะอีเมลโดเมน '+T('lg_domain'));
+  if(pw.length<MIN_PW)return amsg('err','รหัสผ่านต้องมีอย่างน้อย '+MIN_PW+' ตัวอักษร');
+  if(pw!==f.get('password2'))return amsg('err','รหัสผ่านสองช่องไม่ตรงกัน');
+  const {data,error}=await db.auth.signUp({email:em,password:pw,options:{emailRedirectTo:location.origin+location.pathname,data:{full_name:String(f.get('name')||'').trim()}}});
+  if(error)return amsg('err',authMsg(error.message));
+  if(data.user&&Array.isArray(data.user.identities)&&data.user.identities.length===0)return amsg('err',authMsg('already registered'));
+  if(!data.session){ST.authMode='in';ST.msg={t:'ok',m:'สมัครสำเร็จ! ส่งลิงก์ยืนยันไปที่ '+em+' แล้ว — กดลิงก์ในอีเมลก่อน แล้วกลับมาเข้าสู่ระบบ'};return pLogin()}
+  toast('สมัครและเข้าสู่ระบบแล้ว');
+}
+async function doForgot(f){
+  const em=String(f.get('email')).trim();
+  const {error}=await db.auth.resetPasswordForEmail(em,{redirectTo:location.origin+location.pathname});
+  if(error)return amsg('err',authMsg(error.message));
+  amsg('ok','หากอีเมลนี้มีบัญชีอยู่ ระบบได้ส่งลิงก์ตั้งรหัสผ่านใหม่ให้แล้ว — ตรวจกล่องจดหมาย (รวมถึงสแปม)');
+}
+async function doRec(f){
+  const pw=String(f.get('password'));
+  if(pw.length<MIN_PW)return amsg('err','รหัสผ่านต้องมีอย่างน้อย '+MIN_PW+' ตัวอักษร');
+  if(pw!==f.get('password2'))return amsg('err','รหัสผ่านสองช่องไม่ตรงกัน');
+  const {error}=await db.auth.updateUser({password:pw});
+  if(error)return amsg('err',authMsg(error.message));
+  ST.recovery=false;toast('ตั้งรหัสผ่านใหม่เรียบร้อยแล้ว');location.hash=ST.isAdmin?'#/admin':'#/';render();
+}
+async function logout(){ST.recovery=false;await db.auth.signOut();ST.user=null;ST.isAdmin=false;location.hash='#/';render();toast('ออกจากระบบแล้ว')}
+/* หมายเหตุ: ไม่ await เรียก supabase ภายใน callback โดยตรง (กัน deadlock) จึงใช้ setTimeout */
+db.auth.onAuthStateChange((ev,session)=>{
+  if(ev==='PASSWORD_RECOVERY'){ST.recovery=true;ST.user=session?.user||null;location.hash='#/login';setTimeout(render,0);return}
+  if(ev==='SIGNED_IN'||ev==='INITIAL_SESSION'||ev==='USER_UPDATED'){
+    setTimeout(async()=>{
+      await refreshUser(session);
+      if(ST.user&&!ST.isAdmin&&!domainOk(ST.user.email)){
+        await db.auth.signOut();ST.user=null;sessionStorage.setItem('loginErr','บัญชีนี้ไม่ได้รับอนุญาต — ใช้ได้เฉพาะอีเมลโดเมน '+T('lg_domain'));location.hash='#/login';
+      }
+      render();
+    },0);
   }
 });
 
@@ -335,7 +390,7 @@ function render(){
 const brandHtml=()=>{const l=safeImg(T('logo_url'));return `<a class="brand" href="#/">${l?`<img src="${e(l)}" alt="">`:LOGO_SVG}${e(T('brand_name'))}</a>`};
 function navRight(){
   if(ST.user)return `<div class="nav-r">${ST.isAdmin?`<a class="btn btn-sm btn-google" href="#/admin">⚙ แอดมิน</a>`:''}<span style="font-size:13px;opacity:.9">${e(ST.user.email)}</span><button class="btn btn-sm btn-google" onclick="logout()">ออกจากระบบ</button></div>`;
-  return `<div class="nav-r"><a class="btn btn-google" href="#/login">${GOOGLE_SVG}${e(T('lg_nav_btn'))}</a></div>`;
+  return `<div class="nav-r"><a class="btn btn-google" href="#/login">${e(T('lg_nav_btn'))}</a></div>`;
 }
 function newsCard(n){
   const img=safeImg(n.image_url);
@@ -419,14 +474,37 @@ async function sendFeedback(ev){
 }
 
 function pLogin(){
-  const err=sessionStorage.getItem('loginErr');sessionStorage.removeItem('loginErr');
-  $('app').innerHTML=`<div class="page-login"><a class="back" href="#/">← ${e(T('lg_back'))}</a>
+  const m=ST.recovery?'rec':(ST.authMode||'in');
+  if(ST.user&&!ST.recovery){location.hash=ST.isAdmin?'#/admin':'#/';return}
+  const ss=sessionStorage.getItem('loginErr');sessionStorage.removeItem('loginErr');
+  const msg=ST.msg||(ss?{t:'err',m:ss}:null);ST.msg=null;
+  const H={in:[T('lg_title'),T('lg_sub')],
+    up:['สมัครใช้งานครั้งแรก','สร้างบัญชีด้วยอีเมลและรหัสผ่าน แล้วยืนยันอีเมลเพื่อเริ่มใช้งาน'],
+    forgot:['ลืมรหัสผ่าน','กรอกอีเมลที่สมัครไว้ ระบบจะส่งลิงก์สำหรับตั้งรหัสผ่านใหม่ให้'],
+    rec:['ตั้งรหัสผ่านใหม่','กรอกรหัสผ่านใหม่ของคุณ (อย่างน้อย '+MIN_PW+' ตัวอักษร)']}[m];
+  const fld=(l,n,t,ac,x='')=>`<label>${l}<input name="${n}" type="${t}" autocomplete="${ac}" required ${x}></label>`;
+  const btn=t=>`<button class="btn btn-dark abtn" id="asub">${e(t)}</button>`;
+  let body='';
+  if(m==='in')body=fld('อีเมล','email','email','email')+fld('รหัสผ่าน','password','password','current-password')+btn(T('lg_btn'))+`<br><button type="button" class="alink" data-m="forgot">ลืมรหัสผ่าน?</button>`;
+  if(m==='up')body=fld('ชื่อ–นามสกุล','name','text','name','maxlength="120"')+fld('อีเมล','email','email','email')+fld('รหัสผ่าน (อย่างน้อย '+MIN_PW+' ตัวอักษร)','password','password','new-password','minlength="'+MIN_PW+'"')+fld('ยืนยันรหัสผ่าน','password2','password','new-password')+btn('สมัครใช้งาน');
+  if(m==='forgot')body=fld('อีเมล','email','email','email')+btn('ส่งลิงก์ตั้งรหัสผ่านใหม่')+`<br><button type="button" class="alink" data-m="in">← กลับไปเข้าสู่ระบบ</button>`;
+  if(m==='rec')body=fld('รหัสผ่านใหม่','password','password','new-password','minlength="'+MIN_PW+'"')+fld('ยืนยันรหัสผ่านใหม่','password2','password','new-password')+btn('บันทึกรหัสผ่านใหม่');
+  const tabs=(m==='in'||m==='up')?`<div class="atabs"><button type="button" data-m="in" class="${m==='in'?'on':''}">เข้าสู่ระบบ</button><button type="button" data-m="up" class="${m==='up'?'on':''}">สมัครใช้งาน</button></div>`:'';
+  $('app').innerHTML=`<div class="page-login">${m==='rec'?'':`<a class="back" href="#/">← ${e(T('lg_back'))}</a>`}
   <div class="lbox"><div style="width:44px;height:68px;margin:0 auto">${safeImg(T('logo_url'))?`<img src="${e(safeImg(T('logo_url')))}" style="height:68px;margin:auto" alt="">`:LOGO_SVG}</div>
-   <div class="eyebrow">${e(T('lg_eyebrow'))}</div><h1>${e(T('lg_title'))}</h1><p class="sub">${e(T('lg_sub'))}</p>
-   <div class="lcard"><button class="btn gbtn" id="gl">${GOOGLE_SVG}${e(T('lg_btn'))}</button><small>${e(T('lg_note'))}</small>${err?`<div class="err">${e(err)}</div>`:''}</div>
+   <div class="eyebrow">${e(T('lg_eyebrow'))}</div><h1>${e(H[0])}</h1><p class="sub">${e(H[1])}</p>
+   <div class="lcard">${tabs}<form id="af" novalidate>${body}</form><div id="amsg"></div>${m==='in'&&T('lg_note')?`<small>${e(T('lg_note'))}</small>`:''}</div>
    <p class="sub" style="font-size:13px;margin-top:26px">${e(T('lg_terms'))}</p></div></div>`;
-  $('gl').onclick=googleLogin;
-  if(ST.user)location.hash=ST.isAdmin?'#/admin':'#/';
+  if(msg)amsg(msg.t,msg.m);
+  document.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{ST.authMode=b.dataset.m;pLogin()});
+  $('af').onsubmit=async ev=>{
+    ev.preventDefault();const f=ev.target;
+    if(!f.checkValidity()){f.reportValidity();return}
+    const sb=$('asub');sb.disabled=true;
+    try{await ({in:doIn,up:doUp,forgot:doForgot,rec:doRec})[m](new FormData(f))}
+    catch(x){amsg('err',authMsg(x&&x.message))}
+    finally{const b2=$('asub');if(b2)b2.disabled=false}
+  };
 }
 
 /* ============ ADMIN ============ */
@@ -525,7 +603,7 @@ async function admInbox(m){
 async function admAdmins(m){
   const {data,error}=await db.from('ac_admins').select('*').order('email');
   if(error){m.innerHTML=`<h1>ผู้ดูแลระบบ</h1><div class="card2">${e(error.message)}</div>`;return}
-  m.innerHTML=`<h1>ผู้ดูแลระบบ</h1><p class="sub">อีเมลที่ล็อกอินด้วย Google แล้วเข้าหน้านี้ได้</p>
+  m.innerHTML=`<h1>ผู้ดูแลระบบ</h1><p class="sub">อีเมลในรายการนี้ที่สมัครใช้งานและยืนยันอีเมลแล้ว จะเข้าหน้านี้ได้</p>
    <div class="card2"><div class="row2"><input id="ne" type="email" placeholder="อีเมลผู้ดูแลใหม่"><button class="btn btn-dark" id="na">เพิ่ม</button></div>
    ${data.map(r=>`<div class="list-row"><b>${e(r.email)}</b>${r.email.toLowerCase()===ST.user.email.toLowerCase()?'<small>(คุณ)</small>':`<button class="btn btn-out btn-sm" style="color:var(--red)" data-dl="${e(r.email)}">ลบ</button>`}</div>`).join('')}</div>`;
   $('na').onclick=async()=>{const v=$('ne').value.trim().toLowerCase();if(!/^\S+@\S+\.\S+$/.test(v))return toast('อีเมลไม่ถูกต้อง');
