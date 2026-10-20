@@ -245,6 +245,8 @@ const SCHEMA=[
   ['lg_btn','ข้อความปุ่มเข้าสู่ระบบ','text','เข้าสู่ระบบ'],['lg_nav_btn','ข้อความปุ่มบนแถบเมนู','text','เข้าสู่ระบบ / สมัครใช้งาน'],
   ['lg_domain','จำกัดโดเมนอีเมลที่สมัครได้ (เว้นว่าง = ทุกอีเมลสมัครได้)','text',''],
   ['lg_note','หมายเหตุใต้ปุ่ม','text','ยังไม่มีบัญชี? กด “สมัครใช้งาน” ด้านบน'],
+  ['lg_grades','ตัวเลือกระดับชั้น (บรรทัดละ 1 ตัวเลือก)','textarea','ม.1\nม.2\nม.3\nม.4\nม.5\nม.6'],
+  ['lg_rooms','ตัวเลือกห้อง (บรรทัดละ 1 ตัวเลือก)','textarea','1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12'],
   ['lg_terms','ข้อความล่างสุด','text','การเข้าสู่ระบบถือว่ายอมรับข้อกำหนดการใช้งานของสภานักเรียน']]}
 ];
 const DEF={};SCHEMA.forEach(s=>s.f.forEach(([k,,,d])=>DEF[k]=d));
@@ -332,9 +334,10 @@ async function doIn(f){
 async function doUp(f){
   const em=String(f.get('email')).trim(),pw=String(f.get('password'));
   if(!domainOk(em))return amsg('err','สมัครได้เฉพาะอีเมลโดเมน '+T('lg_domain'));
+  if(!f.get('grade')||!f.get('room'))return amsg('err','กรุณาเลือกระดับชั้นและห้อง');
   if(pw.length<MIN_PW)return amsg('err','รหัสผ่านต้องมีอย่างน้อย '+MIN_PW+' ตัวอักษร');
   if(pw!==f.get('password2'))return amsg('err','รหัสผ่านสองช่องไม่ตรงกัน');
-  const {data,error}=await db.auth.signUp({email:em,password:pw,options:{emailRedirectTo:location.origin+location.pathname,data:{full_name:String(f.get('name')||'').trim()}}});
+  const {data,error}=await db.auth.signUp({email:em,password:pw,options:{emailRedirectTo:location.origin+location.pathname,data:{full_name:String(f.get('name')||'').trim(),grade:String(f.get('grade')||''),room:String(f.get('room')||'')}}});
   if(error)return amsg('err',authMsg(error.message));
   if(data.user&&Array.isArray(data.user.identities)&&data.user.identities.length===0)return amsg('err',authMsg('already registered'));
   if(!data.session){ST.authMode='in';ST.msg={t:'ok',m:'สมัครสำเร็จ! ส่งลิงก์ยืนยันไปที่ '+em+' แล้ว — กดลิงก์ในอีเมลก่อน แล้วกลับมาเข้าสู่ระบบ'};return pLogin()}
@@ -389,7 +392,7 @@ function render(){
 /* ============ PUBLIC PAGES ============ */
 const brandHtml=()=>{const l=safeImg(T('logo_url'));return `<a class="brand" href="#/">${l?`<img src="${e(l)}" alt="">`:LOGO_SVG}${e(T('brand_name'))}</a>`};
 function navRight(){
-  if(ST.user)return `<div class="nav-r">${ST.isAdmin?`<a class="btn btn-sm btn-google" href="#/admin">⚙ แอดมิน</a>`:''}<span style="font-size:13px;opacity:.9">${e(ST.user.email)}</span><button class="btn btn-sm btn-google" onclick="logout()">ออกจากระบบ</button></div>`;
+  if(ST.user)return `<div class="nav-r">${ST.isAdmin?`<a class="btn btn-sm btn-google" href="#/admin">⚙ แอดมิน</a>`:''}<span style="font-size:13px;opacity:.9">${e(ST.user.email)}${(ST.user.user_metadata?.grade&&ST.user.user_metadata?.room)?` · ${e(ST.user.user_metadata.grade)}/${e(ST.user.user_metadata.room)}`:''}</span><button class="btn btn-sm btn-google" onclick="logout()">ออกจากระบบ</button></div>`;
   return `<div class="nav-r"><a class="btn btn-google" href="#/login">${e(T('lg_nav_btn'))}</a></div>`;
 }
 function newsCard(n){
@@ -483,10 +486,11 @@ function pLogin(){
     forgot:['ลืมรหัสผ่าน','กรอกอีเมลที่สมัครไว้ ระบบจะส่งลิงก์สำหรับตั้งรหัสผ่านใหม่ให้'],
     rec:['ตั้งรหัสผ่านใหม่','กรอกรหัสผ่านใหม่ของคุณ (อย่างน้อย '+MIN_PW+' ตัวอักษร)']}[m];
   const fld=(l,n,t,ac,x='')=>`<label>${l}<input name="${n}" type="${t}" autocomplete="${ac}" required ${x}></label>`;
+  const sel=(l,n,list)=>`<label>${l}<select name="${n}" required><option value="" disabled selected>เลือก</option>${String(list).split('\n').map(x=>x.trim()).filter(Boolean).map(x=>`<option>${e(x)}</option>`).join('')}</select></label>`;
   const btn=t=>`<button class="btn btn-dark abtn" id="asub">${e(t)}</button>`;
   let body='';
   if(m==='in')body=fld('อีเมล','email','email','email')+fld('รหัสผ่าน','password','password','current-password')+btn(T('lg_btn'))+`<br><button type="button" class="alink" data-m="forgot">ลืมรหัสผ่าน?</button>`;
-  if(m==='up')body=fld('ชื่อ–นามสกุล','name','text','name','maxlength="120"')+fld('อีเมล','email','email','email')+fld('รหัสผ่าน (อย่างน้อย '+MIN_PW+' ตัวอักษร)','password','password','new-password','minlength="'+MIN_PW+'"')+fld('ยืนยันรหัสผ่าน','password2','password','new-password')+btn('สมัครใช้งาน');
+  if(m==='up')body=fld('ชื่อ–นามสกุล','name','text','name','maxlength="120"')+`<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">${sel('ระดับชั้น','grade',T('lg_grades'))}${sel('ห้อง','room',T('lg_rooms'))}</div>`+fld('อีเมล','email','email','email')+fld('รหัสผ่าน (อย่างน้อย '+MIN_PW+' ตัวอักษร)','password','password','new-password','minlength="'+MIN_PW+'"')+fld('ยืนยันรหัสผ่าน','password2','password','new-password')+btn('สมัครใช้งาน');
   if(m==='forgot')body=fld('อีเมล','email','email','email')+btn('ส่งลิงก์ตั้งรหัสผ่านใหม่')+`<br><button type="button" class="alink" data-m="in">← กลับไปเข้าสู่ระบบ</button>`;
   if(m==='rec')body=fld('รหัสผ่านใหม่','password','password','new-password','minlength="'+MIN_PW+'"')+fld('ยืนยันรหัสผ่านใหม่','password2','password','new-password')+btn('บันทึกรหัสผ่านใหม่');
   const tabs=(m==='in'||m==='up')?`<div class="atabs"><button type="button" data-m="in" class="${m==='in'?'on':''}">เข้าสู่ระบบ</button><button type="button" data-m="up" class="${m==='up'?'on':''}">สมัครใช้งาน</button></div>`:'';
