@@ -179,7 +179,7 @@ footer li a:hover{text-decoration:underline}
 .dh{font-size:20px;margin:34px 0 14px;padding-left:12px;border-left:4px solid var(--red)}
 .stats{display:grid;gap:10px;grid-template-columns:repeat(3,1fr);margin-top:20px}
 .stats .ev{text-align:center}.stats b{font-size:30px;margin:0}
-.ev .tag{margin-bottom:6px}
+.ev .tag{margin-bottom:6px}.ev.mem{background-position:center;background-size:cover}.ev.mem[style*="background-image"]{color:#fff}
 .ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .copy{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:nowrap;white-space:nowrap;font-size:clamp(10px,2.5vw,14px)}
 .admin-login-bottom{display:inline-flex;align-items:center;flex:0 0 auto;margin:0;padding:0}
@@ -329,7 +329,7 @@ const TABLES={
  ac_surveys:{title:'แบบสอบถาม',order:['created_at',false],label:r=>r.title,sub:r=>r.is_open?'เปิดอยู่':'ปิด',
   f:[['title','ชื่อแบบสอบถาม','text','full'],['url','ลิงก์แบบสอบถาม','text','full'],['is_open','เปิดให้ตอบ','bool'],['description','คำอธิบาย','textarea','full']],def:{is_open:true}},
  ac_council:{title:'ทำเนียบสภา',order:['sort',true],label:r=>r.name,sub:r=>`${r.dept||''} · ${r.position||''}`,img:r=>r.image_url,
-  f:[['name','ชื่อ–นามสกุล','text'],['position','ตำแหน่ง','text'],['dept','ฝ่าย (ชื่อเดียวกัน = อยู่กลุ่มเดียวกัน)','text'],['sort','ลำดับ (เลขน้อยขึ้นก่อน)','number'],['image_url','รูปถ่าย','image','full']],def:{sort:0}},
+  f:[['name','ชื่อ–นามสกุล','text'],['position','ตำแหน่ง','text'],['dept','ฝ่าย (ชื่อเดียวกัน = อยู่กลุ่มเดียวกัน)','text'],['sort','ลำดับ (เลขน้อยขึ้นก่อน)','number'],['image_url','รูปถ่าย','image','full'],['bg','พื้นหลังภาพ (รหัสสี เช่น #12318f หรือ URL รูป)','text','full']],def:{sort:0,bg:''}},
  ac_lost:{title:'ของหาย–ได้คืน',order:['created_at',false],label:r=>r.title,sub:r=>`${r.kind==='lost'?'ตามหา':'เจอของ'}${r.returned?' · คืนแล้ว':''}${r.visible===false?' · ซ่อน':''}`,img:r=>r.image_url,
   f:[['title','สิ่งของ','text','full'],['kind','ประเภท','select',[['found','เจอของ (รอเจ้าของมารับ)'],['lost','ของหาย (ตามหา)']]],['place','สถานที่','text'],['returned','คืนเจ้าของแล้ว','bool'],['visible','แสดงบนเว็บ','bool'],['image_url','รูป','image','full'],['body','รายละเอียด / วิธีติดต่อ','textarea','full']],def:{kind:'found',returned:false,visible:true}},
  ac_summary:{title:'สรุปก่อนสอบ',order:['created_at',false],label:r=>r.title,sub:r=>`${r.subject||''} ${r.level||''}${r.visible===false?' · ซ่อน':''}`,
@@ -529,7 +529,7 @@ async function submitForm(ev){
   f.reset();toast('ส่งเรียบร้อยแล้ว ขอบคุณครับ');
 }
 function vCouncil(){const g={};ST.council.forEach(m=>(g[m.dept||'อื่น ๆ']??=[]).push(m));
-  return Object.keys(g).length?Object.entries(g).map(([d,ms])=>`<h3 class="dh">${e(d)}</h3><div class="mems">${ms.map(m=>`<div class="ev mem">${safeImg(m.image_url)?`<img class="av" src="${e(m.image_url)}" alt="" loading="lazy">`:`<div class="av">${ic('user')}</div>`}<b>${e(m.name)}</b><span class="sub">${e(m.position||'')}</span></div>`).join('')}</div>`).join(''):`<div class="empty">ยังไม่มีข้อมูลสมาชิกสภา — เพิ่มรายชื่อได้ที่เมนูแอดมิน › ทำเนียบสภา</div>`}
+  return Object.keys(g).length?Object.entries(g).map(([d,ms])=>`<h3 class="dh">${e(d)}</h3><div class="mems">${ms.map(m=>`<div class="ev mem" style="${/^#[0-9a-f]{6}$/i.test(m.bg||'')?`background:${e(m.bg)}`:safeImg(m.bg)?`background-image:linear-gradient(180deg,rgba(0,0,0,.08),rgba(0,0,0,.28)),url('${e(m.bg)}');background-size:cover;background-position:center`:''}">${safeImg(m.image_url)?`<img class="av" src="${e(m.image_url)}" alt="" loading="lazy">`:`<div class="av">${ic('user')}</div>`}<b>${e(m.name)}</b><span class="sub">${e(m.position||'')}</span></div>`).join('')}</div>`).join(''):`<div class="empty">ยังไม่มีข้อมูลสมาชิกสภา — เพิ่มรายชื่อได้ที่เมนูแอดมิน › ทำเนียบสภา</div>`}
 function vLost(){const L=ST.lost.filter(x=>x.visible!==false);
   return L.length?`<div class="events">${L.map(x=>`<div class="ev">${safeImg(x.image_url)?`<img src="${e(x.image_url)}" alt="" loading="lazy" style="border-radius:14px;margin-bottom:10px;max-height:180px;width:100%;object-fit:cover">`:''}<span class="tag ${x.returned?'done':'new'}">${x.returned?'คืนเจ้าของแล้ว':x.kind==='lost'?'ตามหา':'เจอของ'}</span><b>${e(x.title)}</b><span class="sub">${e(x.place||'')}</span><p class="sub" style="font-size:13px;white-space:pre-line">${e(x.body||'')}</p></div>`).join('')}</div>`:`<div class="empty">ยังไม่มีรายการ</div>`}
 function sumList(q){q=String(q||'').toLowerCase();const L=ST.summary.filter(x=>x.visible!==false&&`${x.title} ${x.subject} ${x.level}`.toLowerCase().includes(q));
@@ -561,8 +561,8 @@ async function admVisits(m){
 
 const brandHtml=()=>{const l=safeImg(T('logo_url'));return `<a class="brand" href="#/">${l?`<img src="${e(l)}" alt="">`:LOGO_SVG}${e(T('brand_name'))}</a>`};
 function navRight(){
-  if(ST.user)return `<div class="nav-r"><a class="btn btn-sm btn-google" href="#/p/council">ทำเนียบสภา</a>${ST.isAdmin?`<a class="btn btn-sm btn-google" href="#/admin">${ic('admin')}แอดมิน</a>`:''}<span style="font-size:13px;opacity:.9">${e(ST.user.email)}${(ST.user.user_metadata?.grade&&ST.user.user_metadata?.room)?` · ${e(ST.user.user_metadata.grade)}/${e(ST.user.user_metadata.room)}`:''}</span><button class="btn btn-sm btn-google" onclick="logout()">ออกจากระบบ</button></div>`;
-  return `<div class="nav-r"><a class="btn btn-sm btn-google" href="#/p/council">ทำเนียบสภา</a></div>`; /* ทางลัดไปหน้ารายชื่อสมาชิก */
+  if(ST.user)return `<div class="nav-r">${ST.isAdmin?`<a class="btn btn-sm btn-google" href="#/admin">${ic('admin')}แอดมิน</a>`:''}<span style="font-size:13px;opacity:.9">${e(ST.user.email)}${(ST.user.user_metadata?.grade&&ST.user.user_metadata?.room)?` · ${e(ST.user.user_metadata.grade)}/${e(ST.user.user_metadata.room)}`:''}</span><button class="btn btn-sm btn-google" onclick="logout()">ออกจากระบบ</button></div>`;
+  return '';
 }
 function newsCard(n){
   const img=safeImg(n.image_url);
@@ -758,7 +758,7 @@ async function admTable(t,m){
   const cfg=TABLES[t];m.innerHTML='<p class="sub">กำลังโหลด...</p>';
   const {data,error}=await db.from(t).select('*').order(cfg.order[0],{ascending:cfg.order[1]});
   if(error){m.innerHTML=`<h1>${cfg.title}</h1><div class="card2">โหลดไม่ได้: ${e(error.message)}<br><small class="sub">ตรวจสอบว่ารัน supabase.sql แล้ว</small></div>`;return}
-  m.innerHTML=`<div class="topbar"><div><h1>${cfg.title}</h1><p class="sub">${data.length} รายการ</p></div><button class="btn btn-dark" id="add">+ เพิ่มใหม่</button></div>
+  m.innerHTML=`<div class="topbar"><div><h1>${cfg.title}</h1><p class="sub">${data.length} รายการ</p></div><div class="row2">${t==='ac_council'?'<button class="btn btn-out" id="pullConnector">ดึงสมาชิกจากคอนนิวเตอร์</button>':''}<button class="btn btn-dark" id="add">+ เพิ่มใหม่</button></div></div>
    <div class="card2">${data.map(r=>`<div class="list-row"><div class="row2" style="min-width:0">${cfg.img&&safeImg(cfg.img(r))?`<img class="thumb" src="${e(cfg.img(r))}" alt="">`:''}<div style="min-width:0"><b>${e(cfg.label(r))}</b><small>${e(cfg.sub(r))}</small></div></div><div class="row2"><button class="btn btn-out btn-sm" data-ed="${r.id}">แก้ไข</button><button class="btn btn-out btn-sm" style="color:var(--red)" data-dl="${r.id}">ลบ</button></div></div>`).join('')||'<p class="sub">ยังไม่มีข้อมูล</p>'}</div>`;
   const edit=row=>{
     const vals={...cfg.def,...(row||{})};
@@ -773,6 +773,31 @@ async function admTable(t,m){
     };
   };
   $('add').onclick=()=>edit(null);
+  if(t==='ac_council' && $('pullConnector')) $('pullConnector').onclick=async()=>{
+    const {data,error}=await db.from('cp_members').select('*').order('sort',{ascending:true});
+    if(error){toast('ดึงข้อมูลไม่สำเร็จ: '+error.message+' (ตรวจสอบสิทธิ์อ่านตาราง cp_members)');return}
+    if(!data?.length){toast('ไม่พบสมาชิกในระบบคอนนิวเตอร์');return}
+    $('modalRoot').innerHTML=`<div class="modal" id="mbg"><div class="mbox"><button class="mx" onclick="closeModal()">✕</button><div class="mt"><h3>ดึงสมาชิกจากคอนนิวเตอร์</h3><p class="sub">เลือกสมาชิกเพื่อคัดลอกข้อมูลมาใส่ทำเนียบสภานักเรียน แล้วกำหนดฝ่ายและพื้นหลังได้</p><div id="connectorList" style="margin-top:16px">${data.map((r,i)=>`<div class="list-row"><div class="row2">${safeImg(r.image_url)?`<img class="thumb" src="${e(r.image_url)}" alt="">`:''}<div><b>${e(r.nickname||r.full_name||r.name||'สมาชิก')}</b><small>${e([r.role,r.class_name].filter(Boolean).join(' · '))}</small></div></div><button class="btn btn-dark btn-sm" data-pick="${i}">เลือก</button></div>`).join('')}</div></div></div></div>`;
+    document.querySelectorAll('[data-pick]').forEach(btn=>btn.onclick=()=>{
+      const r=data[Number(btn.dataset.pick)]||{};
+      $('modalRoot').innerHTML=`<div class="modal" id="mbg"><div class="mbox"><button class="mx" onclick="closeModal()">✕</button><div class="mt"><h3>นำเข้าสมาชิก</h3><div class="fields" id="importFields">
+      <label class="l">ชื่อ–นามสกุล<input data-k="name" value="${e(r.full_name||r.nickname||r.name||'')}"></label>
+      <label class="l">ตำแหน่ง<input data-k="position" value="${e(r.role||r.position||'')}"></label>
+      <label class="l full">ฝ่าย<input data-k="dept" placeholder="เช่น ฝ่ายบริหาร / ฝ่ายกิจกรรม" required></label>
+      <label class="l">ลำดับ<input data-k="sort" type="number" value="${data.length+1}"></label>
+      <label class="l full">URL รูปถ่าย<input data-k="image_url" value="${e(r.image_url||'')}"></label>
+      <label class="l full">พื้นหลังภาพ (รหัสสี เช่น #12318f หรือ URL รูป)<input data-k="bg" placeholder="#12318f หรือ https://..."></label>
+      </div><p style="margin-top:18px"><button class="btn btn-dark" id="saveImport">นำเข้าและบันทึก</button></p></div></div></div>`;
+      $('saveImport').onclick=async()=>{
+        const vals={};document.querySelectorAll('#importFields [data-k]').forEach(el=>vals[el.dataset.k]=el.value.trim());
+        if(!vals.name||!vals.dept){toast('กรุณากรอกชื่อและฝ่าย');return}
+        vals.sort=Number(vals.sort)||0;
+        const {error}=await db.from('ac_council').insert(vals);
+        if(error){toast('บันทึกไม่สำเร็จ: '+error.message);return}
+        closeModal();toast('นำเข้าสมาชิกเรียบร้อย');await loadPublic();admTable(t,m);
+      };
+    });
+  };
   m.querySelectorAll('[data-ed]').forEach(b=>b.onclick=()=>edit(data.find(r=>String(r.id)===b.dataset.ed)));
   m.querySelectorAll('[data-dl]').forEach(b=>b.onclick=async()=>{
     if(!confirm('ลบรายการนี้?'))return;
