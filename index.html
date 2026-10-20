@@ -188,9 +188,9 @@ const SCHEMA=[
   ['theme_green','สีกิจกรรม','color','#16a34a'],
   ['site_title','ชื่อแท็บเบราว์เซอร์','text','SCAC69 · สภานักเรียน']]},
  {g:'hero',title:'หน้าแรก (Hero)',f:[
-  ['hero_eyebrow','ข้อความเล็กด้านบน','text','Student Council · Assumption College'],
+  ['hero_eyebrow','ข้อความเล็กด้านบน','text','Student Council · โรงเรียนนาเชือกพิทยาสรรค์'],
   ['hero_title','หัวข้อใหญ่ (ขึ้นบรรทัดใหม่ได้)','textarea','Every Dream\nStarts Here.'],
-  ['hero_sub','คำอธิบาย','textarea','ศูนย์รวมกิจกรรม ข่าวสาร และเรื่องราวของอัสสัมชัญ — เพื่อทุกความฝันของพวกเรา'],
+  ['hero_sub','คำอธิบาย','textarea','ศูนย์รวมกิจกรรม ข่าวสาร และเรื่องราวของโรงเรียนนาเชือกพิทยาสรรค์ — เพื่อทุกความฝันของพวกเรา'],
   ['hero_bg','รูปพื้นหลัง','image','https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=1800&q=70'],
   ['btn1_text','ปุ่ม 1 ข้อความ','text','สำรวจกิจกรรม →'],['btn1_link','ปุ่ม 1 ลิงก์ (#news = เลื่อนไปส่วนข่าว)','text','#news'],
   ['btn2_text','ปุ่ม 2 ข้อความ','text','ปฏิทินกิจกรรมทั้งหมด'],['btn2_link','ปุ่ม 2 ลิงก์','text','#calendar'],
@@ -223,7 +223,7 @@ const SCHEMA=[
   ['line_text','การ์ด LINE: ข้อความ','textarea','อยากคุยกับสภานักเรียนแบบเร็ว ๆ? เพิ่มเพื่อนใน LINE Official Account แล้วทักหาเราได้เลย ทั้งเรื่องกิจกรรม การลงทะเบียน และข้อเสนอแนะ'],
   ['line_btn','การ์ด LINE: ข้อความปุ่ม','text','💬 เพิ่มเพื่อนใน LINE'],['line_url','การ์ด LINE: ลิงก์','text','https://line.me/R/ti/p/@acstudentcouncil']]},
  {g:'ft',title:'ฟุตเตอร์ · ช่องทางติดต่อ',f:[
-  ['ft_name','ชื่อหน่วยงาน (ไทย)','text','สภานักเรียน โรงเรียนอัสสัมชัญ'],['ft_en','ชื่อ (อังกฤษ)','text','Student Council Assumption College'],
+  ['ft_name','ชื่อหน่วยงาน (ไทย)','text','สภานักเรียน โรงเรียนนาเชือกพิทยาสรรค์'],['ft_en','ชื่อ (อังกฤษ)','text','Student Council โรงเรียนนาเชือกพิทยาสรรค์'],
   ['ft_address','ที่อยู่','textarea','26 ถนนเจริญกรุง แขวงบางรัก เขตบางรัก กรุงเทพมหานคร 10500'],
   ['ft_ig','Instagram (ข้อความแสดง)','text','sc.assumption'],['ft_line','LINE (ข้อความแสดง)','text','@acstudentcouncil'],
   ['so_fb','ปุ่มโซเชียล: Facebook ลิงก์','text',''],['so_ig','ปุ่มโซเชียล: Instagram ลิงก์','text',''],['so_line','ปุ่มโซเชียล: LINE ลิงก์','text',''],['so_web','ปุ่มโซเชียล: เว็บไซต์ ลิงก์','text',''],
@@ -231,7 +231,7 @@ const SCHEMA=[
   ['ft_portal_title','หัวข้อพอร์ทัล','text','พอร์ทัลสภานักเรียน'],
   ['ft_portal_text','ข้อความพอร์ทัล','textarea','เข้าสู่ระบบด้วยอีเมลโรงเรียน @ndlp.go.th เพื่อดูข้อมูลเฉพาะนักเรียน'],
   ['ft_portal_btn','ปุ่มพอร์ทัล','text','เข้าสู่ระบบ →'],
-  ['ft_copy','ลิขสิทธิ์','text','© 2026 Student Council Assumption College']]},
+  ['ft_copy','ลิขสิทธิ์','text','© 2026 Student Council โรงเรียนนาเชือกพิทยาสรรค์']]},
  {g:'login',title:'หน้าเข้าสู่ระบบ',f:[
   ['lg_back','ข้อความย้อนกลับ','text','กลับหน้าแรก'],['lg_eyebrow','Eyebrow','text','Student Council'],
   ['lg_title','หัวข้อ','text','ยินดีต้อนรับกลับ'],['lg_sub','คำอธิบาย','text','เข้าสู่ระบบด้วยบัญชี Google ของโรงเรียนเพื่อเข้าถึงพื้นที่นักเรียน'],
@@ -256,12 +256,12 @@ const TABLES={
   f:[['label','ข้อความ','text'],['url','ลิงก์','text'],['sort','ลำดับ','number']],def:{sort:0}}
 };
 const DEF_NEWS=[
- ['🚨 MISSING: THE HAUNTED ONES HAVE YOU SEEN THESE GHOSTS? THE SEARCH IS ON. WE’RE LOOKING FOR YOU.','เหล่านักศึกษาตัวไหนไปอยู่ที่ไหนกัน? สภานักเรียนโรงเรียนอัสสัมชัญประกาศหาตามหาเหล่านี้ AC SPOOKY STAR 2026 — HALLOWEEN COSTUME…','2026-10-18',2,'https://images.unsplash.com/photo-1509557965875-b88c97052f0e?w=1000&q=70'],
- ['MAJOR GROUP PRESENTS “AC HALLOWEEN FESTIVAL 2026” 🎃','โรงเรียนอัสสัมชัญ โดยงานสภานักเรียน ขอเชิญชวนนักเรียนและคณะครูร่วมสัมผัสประสบการณ์พิเศษกับ “AC HALLOWEEN…','2026-10-17',2,'https://images.unsplash.com/photo-1508361001413-7a9dca21d08a?w=1000&q=70'],
+ ['🚨 MISSING: THE HAUNTED ONES HAVE YOU SEEN THESE GHOSTS? THE SEARCH IS ON. WE’RE LOOKING FOR YOU.','เหล่านักศึกษาตัวไหนไปอยู่ที่ไหนกัน? สภานักเรียนโรงเรียนนาเชือกพิทยาสรรค์ประกาศหาตามหาเหล่านี้ AC SPOOKY STAR 2026 — HALLOWEEN COSTUME…','2026-10-18',2,'https://images.unsplash.com/photo-1509557965875-b88c97052f0e?w=1000&q=70'],
+ ['MAJOR GROUP PRESENTS “AC HALLOWEEN FESTIVAL 2026” 🎃','โรงเรียนนาเชือกพิทยาสรรค์ โดยงานสภานักเรียน ขอเชิญชวนนักเรียนและคณะครูร่วมสัมผัสประสบการณ์พิเศษกับ “AC HALLOWEEN…','2026-10-17',2,'https://images.unsplash.com/photo-1508361001413-7a9dca21d08a?w=1000&q=70'],
  ['🚨 SURVIVAL BASICS | เตรียมพร้อมก่อนภัยมา','เราอาจเลือกไม่ได้ว่าจะต้องเผชิญกับเหตุฉุกเฉินแบบไหน แต่เราเลือกได้ว่าจะเตรียมตัวให้พร้อมแค่ไหน…','2026-10-13',10,'https://images.unsplash.com/photo-1581093458791-9f3c3900df4b?w=1000&q=70'],
- ['AC IS ON THE MOVE! ส่งแรงเชียร์ทัพนักกีฬาอัสสัมชัญ สู้ศึกกีฬาสถาบันฯ ครั้งที่ 17','สภานักเรียน โรงเรียนอัสสัมชัญ ขอร่วมส่งกำลังใจและแรงเชียร์ให้แก่คณะนักกีฬาโรงเรียนอัสสัมชัญ…','2026-10-12',2,'https://images.unsplash.com/photo-1517649763962-0c623066013b?w=1000&q=70']
+ ['AC IS ON THE MOVE! ส่งแรงเชียร์ทัพนักกีฬาโรงเรียนนาเชือกพิทยาสรรค์ สู้ศึกกีฬาสถาบันฯ ครั้งที่ 17','สภานักเรียน โรงเรียนนาเชือกพิทยาสรรค์ ขอร่วมส่งกำลังใจและแรงเชียร์ให้แก่คณะนักกีฬาโรงเรียนนาเชือกพิทยาสรรค์…','2026-10-12',2,'https://images.unsplash.com/photo-1517649763962-0c623066013b?w=1000&q=70']
 ].map(([title,body,published_at,photos,image_url],i)=>({id:'d'+i,title,body,published_at,photos,image_url,tag:'ประกาศ',visible:true}));
-const DEF_LINKS=[['เว็บไซต์โรงเรียนอัสสัมชัญ ↗',''],['FB Page: Assumption College ↗',''],['AC Student Page ↗',''],['SWIS APP for Students ↗','']].map(([label,url],i)=>({id:'l'+i,label,url,sort:i}));
+const DEF_LINKS=[['เว็บไซต์โรงเรียนนาเชือกพิทยาสรรค์ ↗',''],['FB Page: โรงเรียนนาเชือกพิทยาสรรค์ ↗',''],['AC Student Page ↗',''],['SWIS APP for Students ↗','']].map(([label,url],i)=>({id:'l'+i,label,url,sort:i}));
 
 /* ============ STATE ============ */
 const ST={S:{...DEF},news:[],events:[],surveys:[],links:[],ok:true,user:null,isAdmin:false,cal:(()=>{const d=new Date();d.setDate(1);return d})(),tab:'brand'};
