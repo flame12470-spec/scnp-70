@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SCAC69 · สภานักเรียน</title>
+<title>สภานักเรียน โรงเรียนนาเชือกพิทยาสรรค์</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
@@ -104,6 +104,16 @@ footer li{list-style:none;margin:9px 0;font-size:14px}
 footer li a:hover{text-decoration:underline}
 .copy{margin-top:40px;font-size:12px;color:var(--muted);display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
 .copy a{opacity:.6}.copy a:hover{opacity:1;text-decoration:underline}
+.boot{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;color:var(--muted);font-size:14px}
+.boot svg{width:44px;height:68px}.boot img{height:72px;width:auto;max-width:70vw}
+.spin{width:30px;height:30px;border:3px solid var(--line);border-top-color:var(--ink);border-radius:50%;animation:sp .8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.soc-list{list-style:none;margin-top:16px;display:grid;gap:10px}
+.soc-list a{display:flex;align-items:center;gap:10px;font-size:14px}
+.soc-list a:hover span:last-child{text-decoration:underline}
+.soc-ic{width:36px;height:36px;flex:none;border:1px solid var(--line);border-radius:50%;display:grid;place-items:center;background:#fff;transition:.2s}
+.soc-list a:hover .soc-ic{background:var(--ink);color:#fff;border-color:var(--ink)}
+.soc-ic svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .social{display:flex;gap:10px;margin-top:18px}
 .social a{width:38px;height:38px;border:1px solid var(--line);border-radius:50%;display:grid;place-items:center;font-size:12px;background:#fff;font-weight:600}
 .page-login{min-height:100vh;padding:28px 48px;background:#fff}
@@ -183,17 +193,24 @@ const toast=m=>{const t=$('toast');t.textContent=m;t.classList.add('show');clear
 const fdate=v=>v?new Date(v+'T00:00:00').toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'numeric'}):'';
 const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 
-const LOGO_SVG='<svg viewBox="0 0 26 40"><defs><linearGradient id="gg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f3d27a"/><stop offset="1" stop-color="#a87a1f"/></linearGradient></defs><path d="M13 0 26 20 13 40 0 20Z" fill="url(#gg)"/><path d="M13 8 20 20 13 32 6 20Z" fill="none" stroke="#fff5" stroke-width="1.5"/></svg>';
+const LOGO_SVG=''; /* ไม่มีโลโก้เริ่มต้น — แสดงเมื่ออัปโหลดโลโก้ในแอดมินเท่านั้น */
+
+/* ============ หน้าโหลด (แสดงทันที ก่อนข้อมูลจริงโหลดเสร็จ จะได้ไม่เห็นข้อมูลเดิม/ข้อมูลตัวอย่าง) ============ */
+function showBoot(){
+  let l='';try{l=safeImg(localStorage.getItem('ac_logo')||'')}catch(_){}
+  $('app').innerHTML=`<div class="boot">${l?`<img src="${e(l)}" alt="">`:LOGO_SVG}<div class="spin"></div><div>กำลังโหลด...</div></div>`;
+}
+showBoot();
 
 /* ============ SETTINGS SCHEMA: ทุกข้อความ/โลโก้/สี แก้ได้จากแอดมิน ============ */
 const SCHEMA=[
  {g:'brand',title:'แบรนด์ · โลโก้ · สี',f:[
-  ['brand_name','ชื่อแบรนด์บนแถบเมนู','text','SCAC69'],
-  ['logo_url','โลโก้ (ว่าง = ใช้โลโก้เริ่มต้น)','image',''],
+  ['brand_name','ชื่อแบรนด์บนแถบเมนู','text','สภานักเรียน'],
+  ['logo_url','โลโก้ (ว่าง = ไม่แสดงโลโก้)','image',''],
   ['theme_red','สีหลัก (ปุ่ม/วันนี้/วันหยุด)','color','#c8102e'],
   ['theme_orange','สีวิชาการ/สอบ','color','#f08a24'],
   ['theme_green','สีกิจกรรม','color','#16a34a'],
-  ['site_title','ชื่อแท็บเบราว์เซอร์','text','SCAC69 · สภานักเรียน']]},
+  ['site_title','ชื่อแท็บเบราว์เซอร์','text','สภานักเรียน โรงเรียนนาเชือกพิทยาสรรค์']]},
  {g:'hero',title:'หน้าแรก (Hero)',f:[
   ['hero_eyebrow','ข้อความเล็กด้านบน','text','Student Council · โรงเรียนนาเชือกพิทยาสรรค์'],
   ['hero_title','หัวข้อใหญ่ (ขึ้นบรรทัดใหม่ได้)','textarea','Every Dream\nStarts Here.'],
@@ -201,8 +218,8 @@ const SCHEMA=[
   ['hero_bg','รูปพื้นหลัง','image','https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=1800&q=70'],
   ['btn1_text','ปุ่ม 1 ข้อความ','text','สำรวจกิจกรรม →'],['btn1_link','ปุ่ม 1 ลิงก์ (#news = เลื่อนไปส่วนข่าว)','text','#news'],
   ['btn2_text','ปุ่ม 2 ข้อความ','text','ปฏิทินกิจกรรมทั้งหมด'],['btn2_link','ปุ่ม 2 ลิงก์','text','#calendar'],
-  ['btn3_text','ปุ่ม 3 ข้อความ','text','Open House →'],['btn3_link','ปุ่ม 3 ลิงก์','text','#upcoming'],
-  ['btn4_text','ปุ่ม 4 (LINE) ข้อความ','text','💬 เพิ่มเพื่อนใน LINE'],['btn4_link','ปุ่ม 4 ลิงก์','text','https://line.me/R/ti/p/@acstudentcouncil']]},
+  ['btn3_text','ปุ่ม 3 ข้อความ','text','กิจกรรมที่กำลังจะมาถึง →'],['btn3_link','ปุ่ม 3 ลิงก์','text','#upcoming'],
+  ['btn4_text','ปุ่ม 4 (LINE) ข้อความ (ต้องใส่ลิงก์ด้วยปุ่มถึงจะแสดง)','text','💬 เพิ่มเพื่อนใน LINE'],['btn4_link','ปุ่ม 4 ลิงก์','text','']]},
  {g:'news',title:'หัวข้อ: ข่าวประชาสัมพันธ์',f:[
   ['news_eyebrow','Eyebrow','text','Latest'],['news_title','หัวข้อ','text','ข่าวประชาสัมพันธ์'],
   ['news_sub','คำอธิบาย','text','อัพเดทจากสภานักเรียน — ประกาศ กิจกรรม และเรื่องสำคัญของโรงเรียน'],
@@ -228,12 +245,11 @@ const SCHEMA=[
   ['fb_btn','ข้อความปุ่มส่ง','text','➤ ส่งเรื่องถึงสภานักเรียน'],['fb_ok','ข้อความหลังส่งสำเร็จ','text','ส่งเรื่องถึงสภานักเรียนเรียบร้อยแล้ว ขอบคุณครับ'],
   ['line_title','การ์ด LINE: หัวข้อ','text','ติดต่อเราทาง LINE'],
   ['line_text','การ์ด LINE: ข้อความ','textarea','อยากคุยกับสภานักเรียนแบบเร็ว ๆ? เพิ่มเพื่อนใน LINE Official Account แล้วทักหาเราได้เลย ทั้งเรื่องกิจกรรม การลงทะเบียน และข้อเสนอแนะ'],
-  ['line_btn','การ์ด LINE: ข้อความปุ่ม','text','💬 เพิ่มเพื่อนใน LINE'],['line_url','การ์ด LINE: ลิงก์','text','https://line.me/R/ti/p/@acstudentcouncil']]},
+  ['line_btn','การ์ด LINE: ข้อความปุ่ม','text','💬 เพิ่มเพื่อนใน LINE'],['line_url','การ์ด LINE: ลิงก์ (เว้นว่าง = ซ่อนการ์ด)','text','']]},
  {g:'ft',title:'ฟุตเตอร์ · ช่องทางติดต่อ',f:[
   ['ft_name','ชื่อหน่วยงาน (ไทย)','text','สภานักเรียน โรงเรียนนาเชือกพิทยาสรรค์'],['ft_en','ชื่อ (อังกฤษ)','text','Student Council โรงเรียนนาเชือกพิทยาสรรค์'],
-  ['ft_address','ที่อยู่','textarea','26 ถนนเจริญกรุง แขวงบางรัก เขตบางรัก กรุงเทพมหานคร 10500'],
-  ['ft_ig','Instagram (ข้อความแสดง)','text','sc.assumption'],['ft_line','LINE (ข้อความแสดง)','text','@acstudentcouncil'],
-  ['so_fb','ปุ่มโซเชียล: Facebook ลิงก์','text',''],['so_ig','ปุ่มโซเชียล: Instagram ลิงก์','text',''],['so_line','ปุ่มโซเชียล: LINE ลิงก์','text',''],['so_web','ปุ่มโซเชียล: เว็บไซต์ ลิงก์','text',''],
+  ['ft_address','ที่อยู่ (เว้นว่าง = ไม่แสดง)','textarea',''],
+  ['ft_socials_note','ช่องทางโซเชียล (Instagram, Facebook, LINE ฯลฯ) เพิ่ม/ลบได้ที่เมนู “โซเชียล / ช่องทางติดต่อ” ในกลุ่ม “ข้อมูล” ด้านซ้าย','note',''],
   ['ft_links_title','หัวข้อคอลัมน์ลิงก์','text','ช่องทางอื่น ๆ'],
   ['ft_portal_title','หัวข้อพอร์ทัล','text','พอร์ทัลสภานักเรียน'],
   ['ft_portal_text','ข้อความพอร์ทัล','textarea','สมัครใช้งานหรือเข้าสู่ระบบด้วยอีเมลของคุณ เพื่อดูข้อมูลเฉพาะนักเรียน'],
@@ -252,7 +268,30 @@ const SCHEMA=[
 const DEF={};SCHEMA.forEach(s=>s.f.forEach(([k,,,d])=>DEF[k]=d));
 
 /* ===== ตารางข้อมูล (CRUD) ===== */
+const SOC={
+ instagram:['Instagram','<rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><path d="M17.5 6.5h.01"/>'],
+ facebook:['Facebook','<path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>'],
+ line:['LINE','<path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>'],
+ youtube:['YouTube','<path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"/><path d="M9.75 15.02 15.5 11.75 9.75 8.48z"/>'],
+ tiktok:['TikTok','<path d="M14 3v11.5a3.5 3.5 0 1 1-3.5-3.5"/><path d="M14 3c.3 2.6 2.1 4.4 5 4.6"/>'],
+ x:['X (Twitter)','<path d="M4 4l16 16M20 4L4 20"/>'],
+ website:['เว็บไซต์','<circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>'],
+ email:['อีเมล','<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 6-10 7L2 6"/>'],
+ phone:['โทรศัพท์','<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>'],
+ other:['ลิงก์อื่น ๆ','<circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>']
+};
+const SOC_BASE={instagram:'https://instagram.com/',facebook:'https://facebook.com/',tiktok:'https://www.tiktok.com/@',x:'https://x.com/',line:'https://line.me/R/ti/p/'};
+const socIcon=p=>`<svg viewBox="0 0 24 24" aria-hidden="true">${(SOC[p]||SOC.other)[1]}</svg>`;
+function socUrl(r){
+  let u=String(r.url||'').trim(),p=r.platform;
+  if(p==='email')return /^mailto:/i.test(u)?u:'mailto:'+u;
+  if(p==='phone')return /^tel:/i.test(u)?u:'tel:'+u.replace(/[\s-]/g,'');
+  if(SOC_BASE[p]&&!/^(https?:|mailto:|tel:)/i.test(u)&&/^@?[\w.\-]+$/.test(u))return SOC_BASE[p]+(p==='line'?(u[0]==='@'?u:'@'+u):u.replace(/^@/,''));
+  return u;
+}
 const TABLES={
+ ac_socials:{title:'โซเชียล / ช่องทางติดต่อ',order:['sort',true],label:r=>(SOC[r.platform]||SOC.other)[0]+(r.label?' · '+r.label:''),sub:r=>r.url,
+  f:[['platform','แพลตฟอร์ม','select',Object.entries(SOC).map(([k,v])=>[k,v[0]])],['label','ข้อความที่แสดง (เช่น @ชื่อไอจี — เว้นว่างได้)','text'],['url','ลิงก์ หรือชื่อบัญชี / อีเมล / เบอร์โทร','text','full'],['sort','ลำดับ (เลขน้อยขึ้นก่อน)','number']],def:{platform:'instagram',sort:0}},
  ac_news:{title:'ข่าวประชาสัมพันธ์',order:['published_at',false],label:r=>r.title,sub:r=>`${fdate(r.published_at)} · ${r.tag||''}${r.visible===false?' · ซ่อน':''}`,img:r=>r.image_url,
   f:[['title','หัวข้อข่าว','text','full'],['tag','ป้าย','text'],['published_at','วันที่','date'],['photos','จำนวนรูป (แสดงบนป้าย)','number'],['visible','แสดงบนเว็บ','bool'],['image_url','รูปปก','image','full'],['body','เนื้อหา','textarea','full']],
   def:{tag:'ประกาศ',photos:0,visible:true,published_at:iso(new Date())}},
@@ -264,16 +303,8 @@ const TABLES={
  ac_links:{title:'ลิงก์ในฟุตเตอร์',order:['sort',true],label:r=>r.label,sub:r=>r.url,
   f:[['label','ข้อความ','text'],['url','ลิงก์','text'],['sort','ลำดับ','number']],def:{sort:0}}
 };
-const DEF_NEWS=[
- ['🚨 MISSING: THE HAUNTED ONES HAVE YOU SEEN THESE GHOSTS? THE SEARCH IS ON. WE’RE LOOKING FOR YOU.','เหล่านักศึกษาตัวไหนไปอยู่ที่ไหนกัน? สภานักเรียนโรงเรียนนาเชือกพิทยาสรรค์ประกาศหาตามหาเหล่านี้ AC SPOOKY STAR 2026 — HALLOWEEN COSTUME…','2026-10-18',2,'https://images.unsplash.com/photo-1509557965875-b88c97052f0e?w=1000&q=70'],
- ['MAJOR GROUP PRESENTS “AC HALLOWEEN FESTIVAL 2026” 🎃','โรงเรียนนาเชือกพิทยาสรรค์ โดยงานสภานักเรียน ขอเชิญชวนนักเรียนและคณะครูร่วมสัมผัสประสบการณ์พิเศษกับ “AC HALLOWEEN…','2026-10-17',2,'https://images.unsplash.com/photo-1508361001413-7a9dca21d08a?w=1000&q=70'],
- ['🚨 SURVIVAL BASICS | เตรียมพร้อมก่อนภัยมา','เราอาจเลือกไม่ได้ว่าจะต้องเผชิญกับเหตุฉุกเฉินแบบไหน แต่เราเลือกได้ว่าจะเตรียมตัวให้พร้อมแค่ไหน…','2026-10-13',10,'https://images.unsplash.com/photo-1581093458791-9f3c3900df4b?w=1000&q=70'],
- ['AC IS ON THE MOVE! ส่งแรงเชียร์ทัพนักกีฬาโรงเรียนนาเชือกพิทยาสรรค์ สู้ศึกกีฬาสถาบันฯ ครั้งที่ 17','สภานักเรียน โรงเรียนนาเชือกพิทยาสรรค์ ขอร่วมส่งกำลังใจและแรงเชียร์ให้แก่คณะนักกีฬาโรงเรียนนาเชือกพิทยาสรรค์…','2026-10-12',2,'https://images.unsplash.com/photo-1517649763962-0c623066013b?w=1000&q=70']
-].map(([title,body,published_at,photos,image_url],i)=>({id:'d'+i,title,body,published_at,photos,image_url,tag:'ประกาศ',visible:true}));
-const DEF_LINKS=[['เว็บไซต์โรงเรียนนาเชือกพิทยาสรรค์ ↗',''],['FB Page: โรงเรียนนาเชือกพิทยาสรรค์ ↗',''],['AC Student Page ↗',''],['SWIS APP for Students ↗','']].map(([label,url],i)=>({id:'l'+i,label,url,sort:i}));
-
 /* ============ STATE ============ */
-const ST={S:{...DEF},news:[],events:[],surveys:[],links:[],ok:true,user:null,isAdmin:false,cal:(()=>{const d=new Date();d.setDate(1);return d})(),tab:'brand'};
+const ST={S:{...DEF},news:[],events:[],surveys:[],links:[],socials:[],ready:false,ok:true,user:null,isAdmin:false,cal:(()=>{const d=new Date();d.setDate(1);return d})(),tab:'brand'};
 const T=k=>ST.S[k]??DEF[k]??'';
 
 async function loadPublic(){
@@ -288,9 +319,13 @@ async function loadPublic(){
     if(bad)throw bad.error;
     ST.S={...DEF,...Object.fromEntries(s.data.map(r=>[r.key,r.value]))};
     ST.news=n.data;ST.events=ev.data;ST.surveys=sv.data;ST.links=lk.data;ST.ok=true;
+    const so=await db.from('ac_socials').select('*').order('sort',{ascending:true});
+    if(so.error)console.warn('ac_socials not ready (รัน supabase.sql ใหม่):',so.error);
+    ST.socials=so.error?[]:so.data;
+    try{localStorage.setItem('ac_logo',safeImg(T('logo_url')))}catch(_){}
   }catch(err){
-    console.warn('Supabase tables not ready, using defaults:',err);
-    ST.ok=false;ST.news=DEF_NEWS;ST.links=DEF_LINKS;
+    console.warn('Supabase tables not ready:',err);
+    ST.ok=false;ST.news=[];ST.events=[];ST.surveys=[];ST.links=[];ST.socials=[];
   }
   applyTheme();
 }
@@ -383,6 +418,7 @@ function linkAttr(u){u=String(u||'').trim();if(/^#[a-z]+$/i.test(u))return `href
 document.addEventListener('click',ev=>{const a=ev.target.closest('[data-go]');if(a){ev.preventDefault();goSection(a.dataset.go)}});
 
 function render(){
+  if(!ST.ready)return showBoot();
   const r=route();
   if(r==='/login')return pLogin();
   if(r==='/admin')return pAdmin();
@@ -422,8 +458,7 @@ function pHome(){
   const side=ST.events.filter(v=>(v.end_date||v.start_date)>=today).slice(0,8);
   const svs=ST.surveys.filter(s=>s.is_open);
   const bg=safeImg(T('hero_bg'));
-  const btn=(n,cls)=>T(`btn${n}_text`)?`<a class="btn ${cls}" ${linkAttr(T(`btn${n}_link`))}>${e(T(`btn${n}_text`))}</a>`:'';
-  const social=[['so_fb','f'],['so_ig','ig'],['so_line','💬'],['so_web','🌐']].filter(([k])=>T(k)).map(([k,l])=>`<a href="${e(safeUrl(T(k)))}" target="_blank" rel="noopener">${l}</a>`).join('');
+  const btn=(n,cls)=>(T(`btn${n}_text`)&&T(`btn${n}_link`))?`<a class="btn ${cls}" ${linkAttr(T(`btn${n}_link`))}>${e(T(`btn${n}_text`))}</a>`:'';
   $('app').innerHTML=`
   <header class="nav" id="nav"><div class="in">${brandHtml()}${navRight()}</div></header>
   <section class="hero" style="${bg?`background-image:url('${e(bg)}')`:''}"><div class="wrap">
@@ -443,17 +478,17 @@ function pHome(){
        <aside class="panel"><h3 style="font-size:18px">${e(T('cal_side'))}</h3><small class="sub">${e(T('cal_side_sub'))}</small>
         ${side.length?side.map(v=>`<div class="item ${e(v.kind)}"><b>${e(v.title)}</b><span>🗓 ${e(fdate(v.start_date))}${v.end_date&&v.end_date!==v.start_date?' – '+e(fdate(v.end_date)):''}</span>${v.place?`<span>📍 ${e(v.place)}</span>`:''}</div>`).join(''):`<p class="sub" style="margin-top:20px">${e(T('cal_none'))}</p>`}</aside></div></section>
    <section class="blk" id="feedback"><div class="eyebrow">${e(T('fb_eyebrow'))}</div><h2 class="h2">${e(T('fb_title'))}</h2><p class="sub">${e(T('fb_sub'))}</p>
-     <div class="fb"><div class="panel"><form class="f" id="fbForm">
+     <div class="fb"${T('line_url')?'':' style="grid-template-columns:1fr"'}><div class="panel"><form class="f" id="fbForm">
         <div class="two"><label class="l">ชื่อ–นามสกุล<input name="name" required maxlength="120" placeholder="ชื่อของคุณ"></label><label class="l">อีเมลสำหรับติดต่อกลับ<input name="email" type="email" maxlength="200" placeholder="you@example.com"></label></div>
         <div class="two"><label class="l">ประเภทเรื่องที่แจ้ง<select name="category">${String(T('fb_cats')).split('\n').filter(Boolean).map(c=>`<option>${e(c)}</option>`).join('')}</select></label><label class="l">หัวข้อ<input name="subject" maxlength="200" placeholder="สรุปสั้น ๆ"></label></div>
         <label class="l">รายละเอียด<textarea name="detail" required maxlength="4000" placeholder="อธิบายปัญหาหรือข้อเสนอของคุณ"></textarea></label>
         <div><button class="btn btn-red" type="submit">${e(T('fb_btn'))}</button></div></form></div>
-       <div class="panel line-card"><div><h3 style="font-size:20px;margin-bottom:10px">${e(T('line_title'))}</h3><p class="sub">${e(T('line_text'))}</p></div><a class="btn btn-line" ${linkAttr(T('line_url'))}>${e(T('line_btn'))}</a></div></div></section>
+       ${T('line_url')?`<div class="panel line-card"><div><h3 style="font-size:20px;margin-bottom:10px">${e(T('line_title'))}</h3><p class="sub">${e(T('line_text'))}</p></div><a class="btn btn-line" ${linkAttr(T('line_url'))}>${e(T('line_btn'))}</a></div>`:''}</div></section>
   </main>
   <footer class="ft"><div class="wrap"><div class="fgrid">
-   <div><div class="brand" style="margin-bottom:6px">${(()=>{const l=safeImg(T('logo_url'));return l?`<img src="${e(l)}" alt="" style="height:34px">`:LOGO_SVG.replace('<svg','<svg style="width:22px;height:34px"')})()}<div>${e(T('ft_name'))}<br><small style="font-weight:400;color:var(--muted)">${e(T('ft_en'))}</small></div></div>
-     <ul style="margin-top:16px">${T('ft_address')?`<li>📍 ${e(T('ft_address'))}</li>`:''}${T('ft_ig')?`<li>📷 ${e(T('ft_ig'))}</li>`:''}${T('ft_line')?`<li>💬 LINE ${e(T('ft_line'))}</li>`:''}</ul>${social?`<div class="social">${social}</div>`:''}</div>
-   <div><h4>${e(T('ft_links_title'))}</h4><ul>${ST.links.map(l=>`<li><a ${linkAttr(l.url)}>${e(l.label)}</a></li>`).join('')}</ul></div>
+   <div><div class="brand" style="margin-bottom:6px">${(()=>{const l=safeImg(T('logo_url'));return l?`<img src="${e(l)}" alt="" style="height:34px">`:''})()}<div>${e(T('ft_name'))}<br><small style="font-weight:400;color:var(--muted)">${e(T('ft_en'))}</small></div></div>
+     ${T('ft_address')?`<ul style="margin-top:16px"><li>📍 ${e(T('ft_address'))}</li></ul>`:''}${ST.socials.filter(x=>x.url).length?`<ul class="soc-list">${ST.socials.filter(x=>x.url).map(x=>`<li><a ${linkAttr(socUrl(x))} title="${e((SOC[x.platform]||SOC.other)[0])}"><span class="soc-ic">${socIcon(x.platform)}</span><span>${e(x.label||(SOC[x.platform]||SOC.other)[0])}</span></a></li>`).join('')}</ul>`:''}</div>
+   <div>${ST.links.length?`<h4>${e(T('ft_links_title'))}</h4><ul>${ST.links.map(l=>`<li><a ${linkAttr(l.url)}>${e(l.label)}</a></li>`).join('')}</ul>`:''}</div>
    <div><h4>${e(T('ft_portal_title'))}</h4><p class="sub" style="font-size:13.5px">${e(T('ft_portal_text'))}</p>${ST.user?'':`<a class="btn btn-dark btn-sm" style="margin-top:14px" href="#/login">${e(T('ft_portal_btn'))}</a>`}</div>
   </div><div class="copy"><span>${e(T('ft_copy'))}</span><a href="#/admin">ผู้ดูแลระบบ</a></div></div></footer>`;
   const nav=$('nav');const sc=()=>nav.classList.toggle('solid',scrollY>60);sc();onscroll=sc;
@@ -495,7 +530,7 @@ function pLogin(){
   if(m==='rec')body=fld('รหัสผ่านใหม่','password','password','new-password','minlength="'+MIN_PW+'"')+fld('ยืนยันรหัสผ่านใหม่','password2','password','new-password')+btn('บันทึกรหัสผ่านใหม่');
   const tabs=(m==='in'||m==='up')?`<div class="atabs"><button type="button" data-m="in" class="${m==='in'?'on':''}">เข้าสู่ระบบ</button><button type="button" data-m="up" class="${m==='up'?'on':''}">สมัครใช้งาน</button></div>`:'';
   $('app').innerHTML=`<div class="page-login">${m==='rec'?'':`<a class="back" href="#/">← ${e(T('lg_back'))}</a>`}
-  <div class="lbox"><div style="width:44px;height:68px;margin:0 auto">${safeImg(T('logo_url'))?`<img src="${e(safeImg(T('logo_url')))}" style="height:68px;margin:auto" alt="">`:LOGO_SVG}</div>
+  <div class="lbox">${safeImg(T('logo_url'))?`<div style="margin:0 auto"><img src="${e(safeImg(T('logo_url')))}" style="height:68px;margin:auto" alt=""></div>`:''}
    <div class="eyebrow">${e(T('lg_eyebrow'))}</div><h1>${e(H[0])}</h1><p class="sub">${e(H[1])}</p>
    <div class="lcard">${tabs}<form id="af" novalidate>${body}</form><div id="amsg"></div>${m==='in'&&T('lg_note')?`<small>${e(T('lg_note'))}</small>`:''}</div>
    <p class="sub" style="font-size:13px;margin-top:26px">${e(T('lg_terms'))}</p></div></div>`;
@@ -512,7 +547,7 @@ function pLogin(){
 }
 
 /* ============ ADMIN ============ */
-const NAVS=[['เนื้อหาเว็บไซต์',SCHEMA.map(s=>[s.g,s.title])],['ข้อมูล',[['ac_news','ข่าวประชาสัมพันธ์'],['ac_events','กิจกรรม / ปฏิทิน'],['ac_surveys','แบบสอบถาม'],['ac_links','ลิงก์ฟุตเตอร์']]],['ระบบ',[['inbox','กล่องข้อเสนอแนะ'],['admins','ผู้ดูแลระบบ']]]];
+const NAVS=[['เนื้อหาเว็บไซต์',SCHEMA.map(s=>[s.g,s.title])],['ข้อมูล',[['ac_news','ข่าวประชาสัมพันธ์'],['ac_events','กิจกรรม / ปฏิทิน'],['ac_surveys','แบบสอบถาม'],['ac_socials','โซเชียล / ช่องทางติดต่อ'],['ac_links','ลิงก์ฟุตเตอร์']]],['ระบบ',[['inbox','กล่องข้อเสนอแนะ'],['admins','ผู้ดูแลระบบ']]]];
 async function pAdmin(){
   if(!ST.user){sessionStorage.setItem('loginErr','กรุณาเข้าสู่ระบบก่อนเข้าพื้นที่ผู้ดูแล');location.hash='#/login';return}
   if(!ST.isAdmin){$('app').innerHTML=`<div class="page-login"><a class="back" href="#/">← กลับหน้าแรก</a><div class="lbox"><h1 style="font-size:30px">ไม่มีสิทธิ์ผู้ดูแล</h1><p class="sub" style="margin-top:12px">บัญชี ${e(ST.user.email)} ยังไม่ได้อยู่ในรายชื่อผู้ดูแล<br>ให้แอดมินเดิมเพิ่มอีเมลนี้ที่เมนู “ผู้ดูแลระบบ” หรือเพิ่มในตาราง ac_admins</p><p style="margin-top:20px"><button class="btn btn-dark btn-sm" onclick="logout()">ออกจากระบบ</button></p></div></div>`;return}
@@ -528,6 +563,7 @@ async function pAdmin(){
 }
 function fieldHtml([k,label,type,extra],val,full){
   const v=val??'';const w=full?' full':'';
+  if(type==='note')return `<p class="sub full" style="font-size:13px;grid-column:1/-1">${label}</p>`;
   if(type==='bool')return `<label class="l${w}" style="display:flex;gap:10px;align-items:center"><input type="checkbox" data-k="${k}" data-t="bool" ${v?'checked':''}> ${label}</label>`;
   if(type==='textarea')return `<label class="l${w}">${label}<textarea data-k="${k}">${e(v)}</textarea></label>`;
   if(type==='select')return `<label class="l${w}">${label}<select data-k="${k}">${extra.map(([a,b])=>`<option value="${a}" ${v===a?'selected':''}>${b}</option>`).join('')}</select></label>`;
@@ -562,13 +598,13 @@ function admSettings(g,m){
    <p style="margin-top:14px"><button class="btn btn-out btn-sm" id="rs">คืนค่าเริ่มต้นของหมวดนี้</button></p>`;
   bindUploads(m);
   const save=async vals=>{
-    const rows=Object.entries(vals).map(([key,value])=>({key,value:String(value??'')}));
+    const rows=Object.entries(vals).filter(([key])=>key!=='ft_socials_note').map(([key,value])=>({key,value:String(value??'')}));
     const {error}=await db.from('ac_settings').upsert(rows,{onConflict:'key'});
     if(error){toast('บันทึกไม่สำเร็จ: '+error.message);return}
     ST.S={...ST.S,...vals};applyTheme();toast('บันทึกแล้ว');admSettings(g,m);
   };
   $('sv').onclick=()=>save(collect($('ff')));
-  $('rs').onclick=()=>{if(confirm('คืนค่าเริ่มต้นทุกช่องในหมวดนี้?'))save(Object.fromEntries(s.f.map(([k,,,d])=>[k,d])))};
+  $('rs').onclick=()=>{if(confirm('คืนค่าเริ่มต้นทุกช่องในหมวดนี้?'))save(Object.fromEntries(s.f.filter(x=>x[2]!=='note').map(([k,,,d])=>[k,d])))};
 }
 async function admTable(t,m){
   const cfg=TABLES[t];m.innerHTML='<p class="sub">กำลังโหลด...</p>';
@@ -616,7 +652,7 @@ async function admAdmins(m){
 }
 
 /* ============ BOOT ============ */
-(async()=>{await loadPublic();await refreshUser();render()})();
+(async()=>{try{await loadPublic();await refreshUser()}catch(x){console.warn(x)}ST.ready=true;render()})();
 </script>
 </body>
 </html>
