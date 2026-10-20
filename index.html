@@ -181,9 +181,9 @@ footer li a:hover{text-decoration:underline}
 .stats .ev{text-align:center}.stats b{font-size:30px;margin:0}
 .ev .tag{margin-bottom:6px}
 .ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.copy{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap}
-.admin-login-bottom{display:inline;margin:0;padding:0}
-.admin-login-bottom a{color:var(--muted);font-size:inherit;text-decoration:none}
+.copy{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:nowrap;white-space:nowrap;font-size:clamp(10px,2.5vw,14px)}
+.admin-login-bottom{display:inline-flex;align-items:center;flex:0 0 auto;margin:0;padding:0}
+.admin-login-bottom a{color:var(--muted);font-size:inherit;text-decoration:none;white-space:nowrap}
 .admin-login-bottom a:hover{color:var(--blue);text-decoration:underline}
 .admin-login-bottom a:before{content:"·";margin-right:8px;color:var(--muted)}
 .h2 .ic{width:.9em;height:.9em;vertical-align:-.1em;margin-right:8px}.av .ic{width:40px;height:40px;color:var(--muted)}
@@ -529,7 +529,7 @@ async function submitForm(ev){
   f.reset();toast('ส่งเรียบร้อยแล้ว ขอบคุณครับ');
 }
 function vCouncil(){const g={};ST.council.forEach(m=>(g[m.dept||'อื่น ๆ']??=[]).push(m));
-  return Object.keys(g).length?Object.entries(g).map(([d,ms])=>`<h3 class="dh">${e(d)}</h3><div class="mems">${ms.map(m=>`<div class="ev mem">${safeImg(m.image_url)?`<img class="av" src="${e(m.image_url)}" alt="" loading="lazy">`:`<div class="av">${ic('user')}</div>`}<b>${e(m.name)}</b><span class="sub">${e(m.position||'')}</span></div>`).join('')}</div>`).join(''):`<div class="empty">ยังไม่มีข้อมูล</div>`}
+  return Object.keys(g).length?Object.entries(g).map(([d,ms])=>`<h3 class="dh">${e(d)}</h3><div class="mems">${ms.map(m=>`<div class="ev mem">${safeImg(m.image_url)?`<img class="av" src="${e(m.image_url)}" alt="" loading="lazy">`:`<div class="av">${ic('user')}</div>`}<b>${e(m.name)}</b><span class="sub">${e(m.position||'')}</span></div>`).join('')}</div>`).join(''):`<div class="empty">ยังไม่มีข้อมูลสมาชิกสภา — เพิ่มรายชื่อได้ที่เมนูแอดมิน › ทำเนียบสภา</div>`}
 function vLost(){const L=ST.lost.filter(x=>x.visible!==false);
   return L.length?`<div class="events">${L.map(x=>`<div class="ev">${safeImg(x.image_url)?`<img src="${e(x.image_url)}" alt="" loading="lazy" style="border-radius:14px;margin-bottom:10px;max-height:180px;width:100%;object-fit:cover">`:''}<span class="tag ${x.returned?'done':'new'}">${x.returned?'คืนเจ้าของแล้ว':x.kind==='lost'?'ตามหา':'เจอของ'}</span><b>${e(x.title)}</b><span class="sub">${e(x.place||'')}</span><p class="sub" style="font-size:13px;white-space:pre-line">${e(x.body||'')}</p></div>`).join('')}</div>`:`<div class="empty">ยังไม่มีรายการ</div>`}
 function sumList(q){q=String(q||'').toLowerCase();const L=ST.summary.filter(x=>x.visible!==false&&`${x.title} ${x.subject} ${x.level}`.toLowerCase().includes(q));
@@ -561,8 +561,8 @@ async function admVisits(m){
 
 const brandHtml=()=>{const l=safeImg(T('logo_url'));return `<a class="brand" href="#/">${l?`<img src="${e(l)}" alt="">`:LOGO_SVG}${e(T('brand_name'))}</a>`};
 function navRight(){
-  if(ST.user)return `<div class="nav-r">${ST.isAdmin?`<a class="btn btn-sm btn-google" href="#/admin">${ic('admin')}แอดมิน</a>`:''}<span style="font-size:13px;opacity:.9">${e(ST.user.email)}${(ST.user.user_metadata?.grade&&ST.user.user_metadata?.room)?` · ${e(ST.user.user_metadata.grade)}/${e(ST.user.user_metadata.room)}`:''}</span><button class="btn btn-sm btn-google" onclick="logout()">ออกจากระบบ</button></div>`;
-  return `<div class="nav-r"></div>`; /* ปุ่มเข้าสู่ระบบซ่อนไว้ — แอดมินเข้าที่ #/login */
+  if(ST.user)return `<div class="nav-r"><a class="btn btn-sm btn-google" href="#/p/council">ทำเนียบสภา</a>${ST.isAdmin?`<a class="btn btn-sm btn-google" href="#/admin">${ic('admin')}แอดมิน</a>`:''}<span style="font-size:13px;opacity:.9">${e(ST.user.email)}${(ST.user.user_metadata?.grade&&ST.user.user_metadata?.room)?` · ${e(ST.user.user_metadata.grade)}/${e(ST.user.user_metadata.room)}`:''}</span><button class="btn btn-sm btn-google" onclick="logout()">ออกจากระบบ</button></div>`;
+  return `<div class="nav-r"><a class="btn btn-sm btn-google" href="#/p/council">ทำเนียบสภา</a></div>`; /* ทางลัดไปหน้ารายชื่อสมาชิก */
 }
 function newsCard(n){
   const img=safeImg(n.image_url);
@@ -807,11 +807,13 @@ let liveRefreshBusy=false;
 setInterval(async()=>{
   if(!ST.ready || liveRefreshBusy || ST.recovery) return;
   const currentRoute=route();
-  /* ไม่รบกวนการแก้ไขข้อมูลในแอดมินหรือการกรอกแบบฟอร์ม/ล็อกอิน */
-  if(currentRoute==='/admin' || currentRoute==='/login') return;
+  /* ไม่รบกวนหน้าแอดมิน หน้าเข้าสู่ระบบ หรือหน้าฟอร์มย่อย */
+  if(currentRoute!=='/') return;
   if(document.querySelector('#modalRoot .modal, #modalRoot .dbg')) return;
   const active=document.activeElement;
   if(active && active.matches && active.matches('input,textarea,select,button')) return;
+  /* ถ้ามีการกรอกข้อมูลค้างอยู่ ห้าม render ทับ เพราะจะทำให้ค่าที่พิมพ์หาย */
+  if([...document.querySelectorAll('#app input, #app textarea, #app select')].some(el=>String(el.value||'').trim()!=='')) return;
 
   liveRefreshBusy=true;
   const keepRoute=currentRoute;
