@@ -861,7 +861,7 @@ function admSettings(g,m){
   $('rs').onclick=()=>{if(confirm('คืนค่าเริ่มต้นทุกช่องในหมวดนี้?'))save(Object.fromEntries(s.f.filter(x=>x[2]!=='note').map(([k,,,d])=>[k,d])))};
 }
 async function admTable(t,m){
-  const cfg=TABLES[t];m.innerHTML='<p class="sub">กำลังโหลด...</p>';
+  const cfg=TABLES[t];if(!ST.quiet)m.innerHTML='<p class="sub">กำลังโหลด...</p>';
   const {data,error}=await db.from(t).select('*').order(cfg.order[0],{ascending:cfg.order[1]});
   if(error){m.innerHTML=`<h1>${cfg.title}</h1><div class="card2">โหลดไม่ได้: ${e(error.message)}<br><small class="sub">ตรวจสอบว่ารัน supabase.sql แล้ว</small></div>`;return}
   m.innerHTML=`<div class="topbar"><div><h1>${cfg.title}</h1><p class="sub">${data.length} รายการ</p></div><div class="row2">${t==='ac_council'?'<button class="btn btn-out" id="pullConnector">ดึงสมาชิกจากคอนนิวเตอร์</button>':''}${cfg.noAdd?'':'<button class="btn btn-dark" id="add">+ เพิ่มใหม่</button>'}</div></div>
@@ -914,7 +914,7 @@ async function admTable(t,m){
 }
 const ROLE={student:'นักเรียน',guardian:'ผู้ปกครอง/บุคคลอื่น',teacher:'ครู'};
 async function admUsers(m){
-  m.innerHTML='<p class="sub">กำลังโหลด...</p>';
+  if(!ST.quiet)m.innerHTML='<p class="sub">กำลังโหลด...</p>';
   const {data,error}=await db.rpc('ac_users');
   if(error){m.innerHTML=`<h1>สมาชิกในระบบ</h1><div class="card2">โหลดไม่ได้: ${e(error.message)}<br><small class="sub">รัน supabase_add_v2.sql (ฉบับล่าสุด) ก่อน</small></div>`;return}
   const ad=await db.from('ac_admins').select('email'),A=new Set((ad.data||[]).map(x=>x.email.toLowerCase())),me=String(ST.user.email).toLowerCase(),ok=data.filter(u=>u.confirmed).length;
@@ -961,7 +961,8 @@ let liveBusy=false,liveT=null;
 const hasModal=()=>!!document.querySelector('#modalRoot .modal, #modalRoot .dbg');
 const typing=()=>{const a=document.activeElement;return !!(a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)&&a.type!=='button')};
 const dirty=()=>[...document.querySelectorAll('#app input:not([type=button]), #app textarea, #app select')].some(el=>!el.disabled&&el.type!=='hidden'&&el.type!=='checkbox'&&String(el.value||'').trim()!=='');
-async function liveRefresh(){
+const liveSig=()=>JSON.stringify([ST.S,ST.news,ST.events,ST.surveys,ST.links,ST.socials,ST.council,ST.lost,ST.summary,ST.achv,ST.res,ST.budget,ST.issues,ST.xpages]);
+async function liveRefresh(kick){
   if(!ST.ready||liveBusy||ST.recovery||hasModal())return;
   const r=route();
   if(r==='/login')return;
@@ -969,19 +970,24 @@ async function liveRefresh(){
   try{
     if(r==='/admin'){
       if(!ST.isAdmin||SCHEMA.find(x=>x.g===ST.tab)||typing())return;
-      await renderAdminTab();return;
+      if(!kick&&!['users','visits'].includes(ST.tab))return; /* ตารางอื่นอัปเดตผ่าน Realtime อยู่แล้ว */
+      const y0=scrollY;ST.quiet=true;
+      try{await renderAdminTab()}finally{ST.quiet=false}
+      requestAnimationFrame(()=>scrollTo({top:y0,left:0,behavior:'instant'}));return;
     }
     if(typing()||dirty())return;
-    const y=scrollY;
+    const y=scrollY,before=liveSig();
     await loadPublic();
     try{const v=await db.rpc('ac_visit_stats');if(!v.error&&v.data)ST.stats=v.data}catch(_){}
-    if(route()===r&&!hasModal()&&!typing()){render();requestAnimationFrame(()=>scrollTo({top:y,left:0,behavior:'instant'}))}
+    const el=$('vs');if(el)el.textContent=vsText();
+    /* วาดหน้าใหม่เฉพาะเมื่อข้อมูลเปลี่ยนจริง — ไม่งั้นไม่แตะหน้าจอ จะได้ไม่กระพริบ */
+    if(liveSig()!==before&&route()===r&&!hasModal()&&!typing()){render();requestAnimationFrame(()=>scrollTo({top:y,left:0,behavior:'instant'}))}
   }catch(err){console.warn('Live refresh failed:',err)}
   finally{liveBusy=false}
 }
-const liveKick=()=>{clearTimeout(liveT);liveT=setTimeout(liveRefresh,500)};
+const liveKick=()=>{clearTimeout(liveT);liveT=setTimeout(()=>liveRefresh(true),500)};
 try{db.channel('ac-live').on('postgres_changes',{event:'*',schema:'public'},liveKick).subscribe()}catch(x){console.warn('realtime off',x)}
-setInterval(liveRefresh,5000);
+setInterval(()=>liveRefresh(false),5000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)liveKick()});
 
 </script>
