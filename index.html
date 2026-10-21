@@ -226,6 +226,8 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 try { if (firebase.analytics) firebase.analytics(); } catch (_) {}
 const fsdb=firebase.firestore(), fauth=firebase.auth(), fstorage=firebase.storage();
+const googleProvider = new firebase.auth.GoogleAuthProvider();
+const BOOTSTRAP_ADMIN_EMAIL = 'flame12470@gmail.com';
 const BUCKET='ac-media';
 const firebaseError=err=>({message:err?.message||String(err||'เกิดข้อผิดพลาด'),code:err?.code||''});
 class Query {
@@ -269,6 +271,7 @@ const db={
  auth:{
   async getSession(){const u=fauth.currentUser;return {data:{session:u?{user:{id:u.uid,email:u.email,user_metadata:{full_name:u.displayName||''}}}:null},error:null}},
   async signInWithPassword({email,password}){try{await fauth.signInWithEmailAndPassword(email,password);return {error:null}}catch(e){return {error:firebaseError(e)}}},
+  async signInWithGoogle(){try{await fauth.signInWithPopup(googleProvider);return {error:null}}catch(e){return {error:firebaseError(e)}}},
   async signUp({email,password,options={}}){try{const c=await fauth.createUserWithEmailAndPassword(email,password);const d=options.data||{};if(d.full_name)await c.user.updateProfile({displayName:d.full_name});return {data:{user:{id:c.user.uid,email:c.user.email,identities:[{}]},session:{user:c.user}},error:null}}catch(e){return {data:null,error:firebaseError(e)}}},
   async resend({email}){try{await fauth.sendSignInLinkToEmail(email,{url:location.origin+location.pathname,handleCodeInApp:true});return {error:null}}catch(e){return {error:firebaseError(e)}}},
   async resetPasswordForEmail(email){try{await fauth.sendPasswordResetEmail(email);return {error:null}}catch(e){return {error:firebaseError(e)}}},
@@ -445,10 +448,14 @@ function applyTheme(){
 async function refreshUser(session){
   if(session===undefined){const {data}=await db.auth.getSession();session=data.session}
   ST.user=session?.user||null;ST.isAdmin=false;
-  if(ST.user){try{const r=await db.from('ac_admins').select('email');ST.isAdmin=!r.error&&r.data.length>0}catch(_){}}
+  if(ST.user){
+    const em=String(ST.user.email||'').trim().toLowerCase();
+    ST.isAdmin=(em===BOOTSTRAP_ADMIN_EMAIL);
+    try{const r=await db.from('ac_admins').select('email');if(!r.error&&Array.isArray(r.data))ST.isAdmin=ST.isAdmin||r.data.some(a=>String(a.email||'').trim().toLowerCase()===em)}catch(_){}
+  }
 }
 const domainOk=em=>{let d=String(T('lg_domain')||'').trim().toLowerCase();if(!d)return true;if(d[0]!=='@')d='@'+d;return String(em||'').toLowerCase().endsWith(d)};
-const MIN_PW=8;
+const MIN_PW=6;
 function authMsg(m){m=String(m||'');
   if(/invalid login|wrong-password|user-not-found|invalid-credential/i.test(m))return 'อีเมลหรือรหัสผ่านไม่ถูกต้อง';
   if(/not confirmed|email.*not verified/i.test(m))return 'กรุณายืนยันอีเมลก่อนเข้าสู่ระบบ';
@@ -719,7 +726,7 @@ function pLogin(){
   const sel=(l,n,list)=>`<label>${l}<select name="${n}" required><option value="" disabled selected>เลือก</option>${String(list).split('\n').map(x=>x.trim()).filter(Boolean).map(x=>`<option>${e(x)}</option>`).join('')}</select></label>`;
   const btn=t=>`<button class="btn btn-dark abtn" id="asub">${e(t)}</button>`;
   let body='';
-  if(m==='in')body=fld('อีเมล','email','email','email')+fld('รหัสผ่าน','password','password','current-password')+btn(T('lg_btn'))+`<br><button type="button" class="alink" data-m="forgot">ลืมรหัสผ่าน?</button>`;
+  if(m==='in')body=fld('อีเมล','email','email','email')+fld('รหัสผ่าน','password','password','current-password')+btn(T('lg_btn'))+`<br><div style="display:flex;align-items:center;gap:10px;margin:14px 0;color:var(--muted);font-size:12px"><span style="height:1px;background:var(--line);flex:1"></span>หรือเข้าสู่ระบบด้วย<span style="height:1px;background:var(--line);flex:1"></span></div><button type="button" id="googleLogin" class="btn btn-google" style="width:100%;justify-content:center;border:1px solid var(--line);border-radius:12px"><b style="font-size:17px;margin-right:8px">G</b>เข้าสู่ระบบด้วย Google</button><br><button type="button" class="alink" data-m="forgot">ลืมรหัสผ่าน?</button>`;
   if(m==='up')body=fld('ชื่อ–นามสกุล','name','text','name','maxlength="120"')+`<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">${sel('ระดับชั้น','grade',T('lg_grades'))}${sel('ห้อง','room',T('lg_rooms'))}</div>`+fld('อีเมล','email','email','email')+fld('รหัสผ่าน (อย่างน้อย '+MIN_PW+' ตัวอักษร)','password','password','new-password','minlength="'+MIN_PW+'"')+fld('ยืนยันรหัสผ่าน','password2','password','new-password')+btn('สมัครใช้งาน');
   if(m==='forgot')body=fld('อีเมล','email','email','email')+btn('ส่งลิงก์ตั้งรหัสผ่านใหม่')+`<br><button type="button" class="alink" data-m="in">← กลับไปเข้าสู่ระบบ</button>`;
   if(m==='rec')body=fld('รหัสผ่านใหม่','password','password','new-password','minlength="'+MIN_PW+'"')+fld('ยืนยันรหัสผ่านใหม่','password2','password','new-password')+btn('บันทึกรหัสผ่านใหม่');
@@ -730,6 +737,7 @@ function pLogin(){
    <div class="lcard">${tabs}<form id="af" novalidate>${body}</form><div id="amsg"></div>${m==='in'&&T('lg_note')?`<small>${e(T('lg_note'))}</small>`:''}</div>
    <p class="sub" style="font-size:13px;margin-top:26px">${e(T('lg_terms'))}</p></div></div>`;
   if(msg)amsg(msg.t,msg.m);
+  const googleBtn=$('googleLogin');if(googleBtn)googleBtn.onclick=async()=>{googleBtn.disabled=true;try{const {error}=await db.auth.signInWithGoogle();if(error)amsg('err',authMsg(error.message))}catch(x){amsg('err',authMsg(x?.message))}finally{if($('googleLogin'))$('googleLogin').disabled=false}};
   document.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{ST.authMode=b.dataset.m;pLogin()});
   $('af').onsubmit=async ev=>{
     ev.preventDefault();const f=ev.target;
