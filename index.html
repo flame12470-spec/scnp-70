@@ -956,34 +956,33 @@ async function admAdmins(m){
 /* ============ BOOT ============ */
 (async()=>{try{await loadPublic();await refreshUser()}catch(x){console.warn(x)}ST.ready=true;render();track()})();
 ;
-/* ============ LIVE UPDATE: ดึงข้อมูลจาก Supabase ทุก 5 วินาที ============ */
-let liveRefreshBusy=false;
-setInterval(async()=>{
-  if(!ST.ready || liveRefreshBusy || ST.recovery) return;
-  const currentRoute=route();
-  /* ไม่รบกวนหน้าแอดมิน หน้าเข้าสู่ระบบ หรือหน้าฟอร์มย่อย */
-  if(currentRoute!=='/') return;
-  if(document.querySelector('#modalRoot .modal, #modalRoot .dbg')) return;
-  const active=document.activeElement;
-  if(active && active.matches && active.matches('input,textarea,select,button')) return;
-  /* ถ้ามีการกรอกข้อมูลค้างอยู่ ห้าม render ทับ เพราะจะทำให้ค่าที่พิมพ์หาย */
-  if([...document.querySelectorAll('#app input, #app textarea, #app select')].some(el=>String(el.value||'').trim()!=='')) return;
-
-  liveRefreshBusy=true;
-  const keepRoute=currentRoute;
-  const keepY=window.scrollY || 0;
+/* ============ LIVE UPDATE: Supabase Realtime + โพลทุก 5 วินาทีเป็นตัวสำรอง ============ */
+let liveBusy=false,liveT=null;
+const hasModal=()=>!!document.querySelector('#modalRoot .modal, #modalRoot .dbg');
+const typing=()=>{const a=document.activeElement;return !!(a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)&&a.type!=='button')};
+const dirty=()=>[...document.querySelectorAll('#app input:not([type=button]), #app textarea, #app select')].some(el=>!el.disabled&&el.type!=='hidden'&&el.type!=='checkbox'&&String(el.value||'').trim()!=='');
+async function liveRefresh(){
+  if(!ST.ready||liveBusy||ST.recovery||hasModal())return;
+  const r=route();
+  if(r==='/login')return;
+  liveBusy=true;
   try{
-    await loadPublic();
-    if(route()===keepRoute && ST.ready){
-      render();
-      requestAnimationFrame(()=>window.scrollTo({top:keepY,left:0,behavior:'instant'}));
+    if(r==='/admin'){
+      if(!ST.isAdmin||SCHEMA.find(x=>x.g===ST.tab)||typing())return;
+      await renderAdminTab();return;
     }
-  }catch(err){
-    console.warn('Live refresh failed:',err);
-  }finally{
-    liveRefreshBusy=false;
-  }
-},5000);
+    if(typing()||dirty())return;
+    const y=scrollY;
+    await loadPublic();
+    try{const v=await db.rpc('ac_visit_stats');if(!v.error&&v.data)ST.stats=v.data}catch(_){}
+    if(route()===r&&!hasModal()&&!typing()){render();requestAnimationFrame(()=>scrollTo({top:y,left:0,behavior:'instant'}))}
+  }catch(err){console.warn('Live refresh failed:',err)}
+  finally{liveBusy=false}
+}
+const liveKick=()=>{clearTimeout(liveT);liveT=setTimeout(liveRefresh,500)};
+try{db.channel('ac-live').on('postgres_changes',{event:'*',schema:'public'},liveKick).subscribe()}catch(x){console.warn('realtime off',x)}
+setInterval(liveRefresh,5000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)liveKick()});
 
 </script>
 </body>
