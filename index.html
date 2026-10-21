@@ -239,6 +239,14 @@ footer li a:hover{text-decoration:underline}
 const SUPABASE_URL='https://aefzegkgfwszuiznihsk.supabase.co';
 const SUPABASE_KEY='sb_publishable_Z1zogpI9qqUlegxG816ncQ_eHeaiFvr';
 const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+/* ที่อยู่เว็บที่ลิงก์ในอีเมลจะพากลับมา (ต้องตรงกับ Redirect URLs ใน Supabase) — ถ้าเปิดไฟล์จากเครื่องจะไม่ส่ง ให้ใช้ Site URL แทน */
+const SITE_URL=/^https?:$/.test(location.protocol)?location.origin+location.pathname:undefined;
+/* ลิงก์ในอีเมลหมดอายุ/ใช้ไปแล้ว: Supabase ส่ง error กลับมาทาง # — แจ้งเป็นภาษาไทย */
+if(/error_code=|error_description=/.test(location.hash)){
+  const ec=(location.hash.match(/error_code=([^&]+)/)||[])[1]||'';
+  setTimeout(()=>toast(ec==='otp_expired'?'ลิงก์หมดอายุหรือถูกใช้ไปแล้ว กรุณาขอลิงก์ใหม่อีกครั้ง':'ลิงก์ไม่ถูกต้อง กรุณาลองใหม่'),800);
+  history.replaceState(null,'',location.pathname+location.search);
+}
 const BUCKET='ac-media';
 
 const $=id=>document.getElementById(id);
@@ -444,7 +452,7 @@ function authMsg(m){m=String(m||'');
   return m||'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง'}
 function amsg(t,m,resend){const el=$('amsg');if(!el)return;
   el.innerHTML=`<div class="${t==='ok'?'okm':'err'}">${e(m)}</div>${resend?`<button type="button" class="alink" id="resend">ส่งอีเมลยืนยันอีกครั้ง</button>`:''}`;
-  if(resend)$('resend').onclick=async()=>{const {error}=await db.auth.resend({type:'signup',email:resend,options:{emailRedirectTo:location.origin+location.pathname}});
+  if(resend)$('resend').onclick=async()=>{const {error}=await db.auth.resend({type:'signup',email:resend,options:{emailRedirectTo:SITE_URL}});
     error?amsg('err',authMsg(error.message),resend):amsg('ok','ส่งอีเมลยืนยันแล้ว กรุณาตรวจกล่องจดหมาย (รวมถึงสแปม)')}}
 async function doIn(f){
   const em=String(f.get('email')).trim();
@@ -462,7 +470,7 @@ async function doUp(f){
   }
   if(pw.length<MIN_PW)return amsg('err','รหัสผ่านต้องมีอย่างน้อย '+MIN_PW+' ตัวอักษร');
   if(pw!==f.get('password2'))return amsg('err','รหัสผ่านสองช่องไม่ตรงกัน');
-  const {data,error}=await db.auth.signUp({email:em,password:pw,options:{emailRedirectTo:location.origin+location.pathname,data:{full_name:String(f.get('name')||'').trim(),grade:String(f.get('grade')||''),room:String(f.get('room')||''),role,student_id:role==='teacher'?'':sid}}});
+  const {data,error}=await db.auth.signUp({email:em,password:pw,options:{emailRedirectTo:SITE_URL,data:{full_name:String(f.get('name')||'').trim(),grade:String(f.get('grade')||''),room:String(f.get('room')||''),role,student_id:role==='teacher'?'':sid}}});
   if(error)return amsg('err',authMsg(error.message));
   if(data.user&&Array.isArray(data.user.identities)&&data.user.identities.length===0)return amsg('err',authMsg('already registered'));
   if(!data.session){ST.authMode='in';ST.msg={t:'ok',m:'สมัครสำเร็จ! ส่งลิงก์ยืนยันไปที่ '+em+' แล้ว — กดลิงก์ในอีเมลก่อน แล้วกลับมาเข้าสู่ระบบ'};return pLogin()}
@@ -470,7 +478,7 @@ async function doUp(f){
 }
 async function doForgot(f){
   const em=String(f.get('email')).trim();
-  const {error}=await db.auth.resetPasswordForEmail(em,{redirectTo:location.origin+location.pathname});
+  const {error}=await db.auth.resetPasswordForEmail(em,{redirectTo:SITE_URL});
   if(error)return amsg('err',authMsg(error.message));
   amsg('ok','หากอีเมลนี้มีบัญชีอยู่ ระบบได้ส่งลิงก์ตั้งรหัสผ่านใหม่ให้แล้ว — ตรวจกล่องจดหมาย (รวมถึงสแปม)');
 }
