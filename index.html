@@ -218,6 +218,15 @@ footer li a:hover{text-decoration:underline}
  .adm aside .ag button{width:100%;text-align:center;padding:12px 8px;border-radius:14px;border:1px solid var(--line);background:#fff;font-weight:500;font-size:13.5px;line-height:1.3}
  .adm aside .ag button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
 }
+.bbar{position:fixed;left:0;right:0;bottom:0;z-index:45;padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));background:rgba(255,255,255,.94);backdrop-filter:blur(14px);border-top:1px solid var(--line);display:flex;justify-content:center}
+.bbar .btn{width:100%;max-width:420px;padding:13px 20px}
+
+@media(max-width:900px){
+ .adm{display:block}
+ .adm aside{position:fixed;top:0;left:0;right:0;z-index:60;height:auto;max-height:none;overflow:visible;padding:10px 12px;background:#fff;border-bottom:1px solid var(--line)}
+ .adm aside .ag{position:fixed;left:0;right:0;top:64px;bottom:0;margin:0;background:#fff;padding:6px 12px 90px;overflow-y:auto;overscroll-behavior:auto;-webkit-overflow-scrolling:touch;align-content:start}
+ .adm main{padding:84px 16px 90px}
+}
 </style>
 </head>
 <body>
@@ -557,7 +566,7 @@ const FORMS={
  lost:{cat:'ของหาย–ได้คืน',f:[['type','ประเภท',['ของหาย','เจอของ'],1],['subject','สิ่งของ','text',1],['place','สถานที่','text'],['contact','ช่องทางติดต่อ','text',1],['msg','รายละเอียด','area']]}};
 function profHtml(){
   const u=ST.user;
-  if(!u)return `<div style="padding:34px 10px 10px"><a class="btn btn-dark btn-sm" href="#/login" onclick="closeModal()" style="width:100%">${e(T('lg_nav_btn'))}</a></div>`;
+  if(!u)return '<div style="height:34px"></div>';
   const md=u.user_metadata||{},nm=md.full_name||u.email.split('@')[0];
   return `<div style="display:flex;gap:12px;align-items:center;padding:30px 10px 14px;margin-bottom:6px;border-bottom:1px solid var(--line)"><div class="av" style="width:48px;height:48px;margin:0;font-size:20px;flex:none">${ic('user')}</div><div style="min-width:0"><b style="display:block;font-size:15px">${e(nm)}</b><small class="sub" style="display:block;word-break:break-all">${e(u.email)}</small>${md.grade&&md.room?`<small class="sub">${e(md.grade)}/${e(md.room)}${ST.isAdmin?' · แอดมิน':''}</small>`:ST.isAdmin?'<small class="sub">แอดมิน</small>':''}</div></div>`}
 function openMenu(){
@@ -566,7 +575,7 @@ function openMenu(){
    ${profHtml()}<a href="#/" class="${cur==='/'?'on':''}" onclick="closeModal()">${ic('home')}หน้าแรก</a><h5>หน้าหลัก</h5>
    ${sec.map(([k,i,l])=>`<a href="#/" data-go="${k}">${ic(i)}${l}</a>`).join('')}<h5>บริการ / หน้าต่าง ๆ</h5>
    ${allPages().map(([k,i,l,,x])=>x&&x.kind==='link'?`<a ${linkAttr(x.url)} onclick="closeModal()">${ic(i)}${e(l)}</a>`:`<a href="#/p/${k}" class="${cur==='/p/'+k?'on':''}" onclick="closeModal()">${ic(i)}${e(l)}</a>`).join('')}
-   ${ST.isAdmin?`<h5>ผู้ดูแล</h5><a href="#/admin" onclick="closeModal()">${ic('admin')}แอดมิน</a>`:''}${ST.user?`<a href="#/" onclick="closeModal();logout()">${ic('out')}ออกจากระบบ</a>`:''}</nav></div>`;
+   ${ST.isAdmin?`<h5>ผู้ดูแล</h5><a href="#/admin" onclick="closeModal()">${ic('admin')}แอดมิน</a>`:''}${ST.user?`<a href="#/" onclick="closeModal();logout()">${ic('out')}ออกจากระบบ</a>`:`<div style="padding:22px 10px 6px;margin-top:14px;border-top:1px solid var(--line)"><a class="btn btn-dark" href="#/login" onclick="closeModal()" style="width:100%">${e(T('lg_nav_btn'))}</a></div>`}</nav></div>`;
   $('mbg').onclick=ev=>{if(ev.target.id==='mbg')closeModal()};document.body.style.overflow='hidden';
 }
 function formHtml(k){const F=FORMS[k],depts=[...new Set(ST.council.map(m=>m.dept).filter(Boolean))];
