@@ -434,6 +434,7 @@ const domainOk=em=>{let d=String(T('lg_domain')||'').trim().toLowerCase();if(!d)
 const MIN_PW=8;
 function authMsg(m){m=String(m||'');
   if(/invalid login/i.test(m))return 'อีเมลหรือรหัสผ่านไม่ถูกต้อง';
+  if(/banned/i.test(m))return 'บัญชีนี้ถูกระงับการใช้งาน — โปรดติดต่อสภานักเรียน';
   if(/not confirmed/i.test(m))return 'ยังไม่ได้ยืนยันอีเมล — กรุณากดลิงก์ในอีเมลที่ส่งให้ตอนสมัคร';
   if(/already (been )?registered/i.test(m))return 'อีเมลนี้สมัครไว้แล้ว — ลองเข้าสู่ระบบ หรือกด “ลืมรหัสผ่าน”';
   if(/same password|different from the old/i.test(m))return 'รหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสเดิม';
@@ -454,10 +455,14 @@ async function doIn(f){
 async function doUp(f){
   const em=String(f.get('email')).trim(),pw=String(f.get('password'));
   if(!domainOk(em))return amsg('err','สมัครได้เฉพาะอีเมลโดเมน '+T('lg_domain'));
-  if(!f.get('grade')||!f.get('room'))return amsg('err','กรุณาเลือกระดับชั้นและห้อง');
+  const role=String(f.get('role')||'student'),sid=String(f.get('student_id')||'').trim();
+  if(role!=='teacher'){
+    if(!f.get('grade')||!f.get('room'))return amsg('err','กรุณาเลือกระดับชั้นและห้อง');
+    if(!/^[0-9A-Za-z\-\/]{3,20}$/.test(sid))return amsg('err','กรุณากรอกเลขประจำตัวนักเรียนให้ถูกต้อง');
+  }
   if(pw.length<MIN_PW)return amsg('err','รหัสผ่านต้องมีอย่างน้อย '+MIN_PW+' ตัวอักษร');
   if(pw!==f.get('password2'))return amsg('err','รหัสผ่านสองช่องไม่ตรงกัน');
-  const {data,error}=await db.auth.signUp({email:em,password:pw,options:{emailRedirectTo:location.origin+location.pathname,data:{full_name:String(f.get('name')||'').trim(),grade:String(f.get('grade')||''),room:String(f.get('room')||'')}}});
+  const {data,error}=await db.auth.signUp({email:em,password:pw,options:{emailRedirectTo:location.origin+location.pathname,data:{full_name:String(f.get('name')||'').trim(),grade:String(f.get('grade')||''),room:String(f.get('room')||''),role,student_id:role==='teacher'?'':sid}}});
   if(error)return amsg('err',authMsg(error.message));
   if(data.user&&Array.isArray(data.user.identities)&&data.user.identities.length===0)return amsg('err',authMsg('already registered'));
   if(!data.session){ST.authMode='in';ST.msg={t:'ok',m:'สมัครสำเร็จ! ส่งลิงก์ยืนยันไปที่ '+em+' แล้ว — กดลิงก์ในอีเมลก่อน แล้วกลับมาเข้าสู่ระบบ'};return pLogin()}
@@ -568,7 +573,7 @@ function profHtml(){
   const u=ST.user;
   if(!u)return '<div style="height:34px"></div>';
   const md=u.user_metadata||{},nm=md.full_name||u.email.split('@')[0];
-  return `<div style="display:flex;gap:12px;align-items:center;padding:30px 10px 14px;margin-bottom:6px;border-bottom:1px solid var(--line)"><div class="av" style="width:48px;height:48px;margin:0;font-size:20px;flex:none">${ic('user')}</div><div style="min-width:0"><b style="display:block;font-size:15px">${e(nm)}</b><small class="sub" style="display:block;word-break:break-all">${e(u.email)}</small>${md.grade&&md.room?`<small class="sub">${e(md.grade)}/${e(md.room)}${ST.isAdmin?' · แอดมิน':''}</small>`:ST.isAdmin?'<small class="sub">แอดมิน</small>':''}</div></div>`}
+  return `<div style="display:flex;gap:12px;align-items:center;padding:30px 10px 14px;margin-bottom:6px;border-bottom:1px solid var(--line)"><div class="av" style="width:48px;height:48px;margin:0;font-size:20px;flex:none">${ic('user')}</div><div style="min-width:0"><b style="display:block;font-size:15px">${e(nm)}</b>${ROLE[md.role]?`<small class="sub" style="display:block">${ROLE[md.role]}</small>`:''}<small class="sub" style="display:block;word-break:break-all">${e(u.email)}</small>${md.grade&&md.room?`<small class="sub">${e(md.grade)}/${e(md.room)}${ST.isAdmin?' · แอดมิน':''}</small>`:ST.isAdmin?'<small class="sub">แอดมิน</small>':''}</div></div>`}
 function openMenu(){
   const cur=route(),sec=[['news','news','ข่าวประชาสัมพันธ์'],['upcoming','star','กิจกรรมที่กำลังจะมาถึง'],['surveys','survey','แบบสอบถาม'],['calendar','cal','ปฏิทินการศึกษา'],['feedback','mail','แจ้งปัญหา / ข้อเสนอแนะ']];
   $('modalRoot').innerHTML=`<div class="dbg" id="mbg"><nav class="drw"><button class="mx" onclick="closeModal()" aria-label="ปิด">✕</button>
@@ -748,7 +753,7 @@ function pLogin(){
   const btn=t=>`<button class="btn btn-dark abtn" id="asub">${e(t)}</button>`;
   let body='';
   if(m==='in')body=fld('อีเมล','email','email','email')+fld('รหัสผ่าน','password','password','current-password')+btn(T('lg_btn'))+`<br><button type="button" class="alink" data-m="forgot">ลืมรหัสผ่าน?</button>`;
-  if(m==='up')body=fld('ชื่อ–นามสกุล','name','text','name','maxlength="120"')+`<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">${sel('ระดับชั้น','grade',T('lg_grades'))}${sel('ห้อง','room',T('lg_rooms'))}</div>`+fld('อีเมล','email','email','email')+fld('รหัสผ่าน (อย่างน้อย '+MIN_PW+' ตัวอักษร)','password','password','new-password','minlength="'+MIN_PW+'"')+fld('ยืนยันรหัสผ่าน','password2','password','new-password')+btn('สมัครใช้งาน');
+  if(m==='up')body=`<label>สถานะ<select name="role" id="rl"><option value="student">นักเรียน</option><option value="guardian">ผู้ปกครอง / บุคคลอื่น</option><option value="teacher">ครู</option></select></label><label><span id="nml">ชื่อ–นามสกุล</span><input name="name" type="text" autocomplete="name" required maxlength="120"></label><label id="sidw"><span id="sidl">เลขประจำตัวนักเรียน</span><input name="student_id" id="sid" type="text" inputmode="numeric" autocomplete="off" required maxlength="20"></label><div id="grw" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">${sel('ระดับชั้น','grade',T('lg_grades'))}${sel('ห้อง','room',T('lg_rooms'))}</div>`+fld('อีเมล','email','email','email')+fld('รหัสผ่าน (อย่างน้อย '+MIN_PW+' ตัวอักษร)','password','password','new-password','minlength="'+MIN_PW+'"')+fld('ยืนยันรหัสผ่าน','password2','password','new-password')+btn('สมัครใช้งาน');
   if(m==='forgot')body=fld('อีเมล','email','email','email')+btn('ส่งลิงก์ตั้งรหัสผ่านใหม่')+`<br><button type="button" class="alink" data-m="in">← กลับไปเข้าสู่ระบบ</button>`;
   if(m==='rec')body=fld('รหัสผ่านใหม่','password','password','new-password','minlength="'+MIN_PW+'"')+fld('ยืนยันรหัสผ่านใหม่','password2','password','new-password')+btn('บันทึกรหัสผ่านใหม่');
   const tabs=(m==='in'||m==='up')?`<div class="atabs"><button type="button" data-m="in" class="${m==='in'?'on':''}">เข้าสู่ระบบ</button><button type="button" data-m="up" class="${m==='up'?'on':''}">สมัครใช้งาน</button></div>`:'';
@@ -759,6 +764,10 @@ function pLogin(){
    <p class="sub" style="font-size:13px;margin-top:26px">${e(T('lg_terms'))}</p></div></div>`;
   if(msg)amsg(msg.t,msg.m);
   document.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{ST.authMode=b.dataset.m;pLogin()});
+  const rl=$('rl');if(rl)rl.onchange=()=>{const v=rl.value,t=v==='teacher';
+    $('nml').textContent=t?'ชื่อครู (ชื่อ–นามสกุล)':'ชื่อ–นามสกุล';
+    $('sidl').textContent=v==='guardian'?'เลขประจำตัวนักเรียนของบุตร/หลาน':'เลขประจำตัวนักเรียน';
+    $('sidw').hidden=t;$('sid').disabled=t;$('grw').hidden=t;$('grw').querySelectorAll('select').forEach(x=>x.disabled=t)};
   $('af').onsubmit=async ev=>{
     ev.preventDefault();const f=ev.target;
     if(!f.checkValidity()){f.reportValidity();return}
@@ -903,17 +912,28 @@ async function admTable(t,m){
     toast('ลบแล้ว');await loadPublic();admTable(t,m);
   });
 }
+const ROLE={student:'นักเรียน',guardian:'ผู้ปกครอง/บุคคลอื่น',teacher:'ครู'};
 async function admUsers(m){
   m.innerHTML='<p class="sub">กำลังโหลด...</p>';
   const {data,error}=await db.rpc('ac_users');
   if(error){m.innerHTML=`<h1>สมาชิกในระบบ</h1><div class="card2">โหลดไม่ได้: ${e(error.message)}<br><small class="sub">รัน supabase_add_v2.sql (ฉบับล่าสุด) ก่อน</small></div>`;return}
-  const ad=await db.from('ac_admins').select('email'),A=new Set((ad.data||[]).map(x=>x.email.toLowerCase())),ok=data.filter(u=>u.confirmed).length;
-  m.innerHTML=`<h1>สมาชิกในระบบ</h1><p class="sub">ผู้ที่สมัครเข้ามาทั้งหมด</p>
-   <div class="stats"><div class="ev"><b>${data.length}</b><span class="sub">สมัครทั้งหมด</span></div><div class="ev"><b>${ok}</b><span class="sub">ยืนยันอีเมลแล้ว</span></div><div class="ev"><b>${data.length-ok}</b><span class="sub">ยังไม่ยืนยัน</span></div></div>
-   <input id="us" placeholder="ค้นหา ชื่อ / อีเมล / ชั้น" style="margin-top:20px"><div class="card2" id="ul"></div>`;
-  const draw=q=>{q=q.toLowerCase();const L=data.filter(u=>`${u.full_name||''} ${u.email} ${u.grade||''}/${u.room||''}`.toLowerCase().includes(q));
-    $('ul').innerHTML=L.map(u=>`<div class="list-row"><div style="min-width:0"><b>${e(u.full_name||'(ไม่ระบุชื่อ)')} ${A.has(String(u.email).toLowerCase())?'<span class="tag">แอดมิน</span>':''}</b><small style="word-break:break-all">${e(u.email)}</small><small>${u.grade?`${e(u.grade)}/${e(u.room||'')} · `:''}สมัคร ${e(fd2(u.created_at))}${u.last_sign_in_at?' · เข้าล่าสุด '+e(fd2(u.last_sign_in_at)):''}</small></div><span class="tag ${u.confirmed?'done':'new'}">${u.confirmed?'ยืนยันแล้ว':'รอยืนยัน'}</span></div>`).join('')||'<p class="sub">ไม่พบรายการ</p>'};
+  const ad=await db.from('ac_admins').select('email'),A=new Set((ad.data||[]).map(x=>x.email.toLowerCase())),me=String(ST.user.email).toLowerCase(),ok=data.filter(u=>u.confirmed).length;
+  m.innerHTML=`<h1>สมาชิกในระบบ</h1><p class="sub">ผู้ที่สมัครเข้ามาทั้งหมด · ระงับ ลบ หรือเปลี่ยนรหัสผ่านให้สมาชิกได้</p>
+   <div class="stats s4"><div class="ev"><b>${data.length}</b><span class="sub">สมัครทั้งหมด</span></div><div class="ev"><b>${ok}</b><span class="sub">ยืนยันอีเมลแล้ว</span></div><div class="ev"><b>${data.length-ok}</b><span class="sub">ยังไม่ยืนยัน</span></div><div class="ev"><b>${data.filter(u=>u.banned).length}</b><span class="sub">ถูกระงับ</span></div></div>
+   <input id="us" placeholder="ค้นหา ชื่อ / อีเมล / ชั้น / รหัสนักเรียน" style="margin-top:20px"><div class="card2" id="ul"></div>`;
+  const draw=q=>{q=q.toLowerCase();const L=data.filter(u=>`${u.full_name||''} ${u.email} ${u.grade||''}/${u.room||''} ${u.student_id||''}`.toLowerCase().includes(q));
+    $('ul').innerHTML=L.map(u=>{const em=String(u.email).toLowerCase(),adm=A.has(em),self=em===me,btn=(a,l,c)=>`<button class="btn btn-out btn-sm" ${c?`style="color:var(--red)"`:''} data-ua="${a}" data-id="${e(u.id)}" data-nm="${e(u.full_name||u.email)}">${l}</button>`;
+      return `<div class="list-row" style="align-items:flex-start;flex-wrap:wrap"><div style="min-width:0;flex:1 1 240px"><b>${e(u.full_name||'(ไม่ระบุชื่อ)')} ${adm?'<span class="tag">แอดมิน</span> ':''}${u.banned?'<span class="tag new">ถูกระงับ</span> ':''}<span class="tag ${u.confirmed?'done':'new'}">${u.confirmed?'ยืนยันแล้ว':'รอยืนยัน'}</span></b><small style="word-break:break-all">${e(u.email)}</small><small>${[ROLE[u.role],u.student_id?'รหัสนักเรียน '+e(u.student_id):'',u.grade?e(u.grade)+'/'+e(u.room||''):''].filter(Boolean).join(' · ')}</small><small>สมัคร ${e(fd2(u.created_at))}${u.last_sign_in_at?' · เข้าล่าสุด '+e(fd2(u.last_sign_in_at)):''}</small></div>${adm||self?'':`<div class="row2" style="flex-wrap:wrap">${btn('pw','เปลี่ยนรหัสผ่าน')}${btn(u.banned?'unban':'ban',u.banned?'ยกเลิกระงับ':'ระงับ')}${btn('del','ลบ',1)}</div>`}</div>`}).join('')||'<p class="sub">ไม่พบรายการ</p>';
+    $('ul').querySelectorAll('[data-ua]').forEach(b=>b.onclick=()=>userAct(b.dataset.ua,b.dataset.id,b.dataset.nm,m))};
   draw('');$('us').oninput=ev=>draw(ev.target.value);
+}
+async function userAct(a,id,nm,m){
+  let r;
+  if(a==='del'){if(!confirm(`ลบ ${nm} ออกจากระบบถาวร? ย้อนกลับไม่ได้`))return;r=await db.rpc('ac_user_delete',{uid:id})}
+  else if(a==='ban'||a==='unban'){if(!confirm(`${a==='ban'?'ระงับการใช้งานของ':'ยกเลิกการระงับของ'} ${nm}?`))return;r=await db.rpc('ac_user_ban',{uid:id,ban:a==='ban'})}
+  else{const pw=prompt(`ตั้งรหัสผ่านใหม่ให้ ${nm} (อย่างน้อย ${MIN_PW} ตัวอักษร)`);if(pw===null)return;if(pw.length<MIN_PW)return toast('รหัสผ่านต้องมีอย่างน้อย '+MIN_PW+' ตัวอักษร');r=await db.rpc('ac_user_pw',{uid:id,pw})}
+  if(r.error)return toast('ทำรายการไม่สำเร็จ: '+r.error.message);
+  toast('เรียบร้อยแล้ว');admUsers(m);
 }
 async function admInbox(m){
   const {data,error}=await db.from('ac_feedback').select('*').order('created_at',{ascending:false}).limit(200);
