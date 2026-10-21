@@ -932,7 +932,7 @@ async function userAct(a,id,nm,m){
   if(a==='del'){if(!confirm(`ลบ ${nm} ออกจากระบบถาวร? ย้อนกลับไม่ได้`))return;r=await db.rpc('ac_user_delete',{uid:id})}
   else if(a==='ban'||a==='unban'){if(!confirm(`${a==='ban'?'ระงับการใช้งานของ':'ยกเลิกการระงับของ'} ${nm}?`))return;r=await db.rpc('ac_user_ban',{uid:id,ban:a==='ban'})}
   else{const pw=prompt(`ตั้งรหัสผ่านใหม่ให้ ${nm} (อย่างน้อย ${MIN_PW} ตัวอักษร)`);if(pw===null)return;if(pw.length<MIN_PW)return toast('รหัสผ่านต้องมีอย่างน้อย '+MIN_PW+' ตัวอักษร');r=await db.rpc('ac_user_pw',{uid:id,pw})}
-  if(r.error)return toast('ทำรายการไม่สำเร็จ: '+r.error.message);
+  if(r.error)return toast(/find the function|schema cache/i.test(r.error.message)?'ยังไม่ได้รัน supabase_add_v2.sql ฉบับล่าสุดใน Supabase':'ทำรายการไม่สำเร็จ: '+r.error.message);
   toast('เรียบร้อยแล้ว');admUsers(m);
 }
 async function admInbox(m){
