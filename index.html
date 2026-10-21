@@ -6,7 +6,11 @@
 <title>สภานักเรียน โรงเรียนนาเชือกพิทยาสรรค์</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-analytics-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-storage-compat.js"></script>
 <style>
 :root{--ink:#0a0a0a;--muted:#6b6b6b;--line:#e8e8e8;--bg:#fff;--soft:#f6f6f6;--gold:#c9a24b;--red:#c8102e;--orange:#f08a24;--green:#16a34a;--line-green:#06c755;--radius:28px}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -209,12 +213,72 @@ footer li a:hover{text-decoration:underline}
 <div class="toast" id="toast"></div>
 
 <script>
-/* ============ CONFIG (จากระบบเดิมของคุณ) ============ */
-const SUPABASE_URL='https://aefzegkgfwszuiznihsk.supabase.co';
-const SUPABASE_KEY='sb_publishable_Z1zogpI9qqUlegxG816ncQ_eHeaiFvr';
-const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+/* ============ FIREBASE CONFIG ============ */
+const firebaseConfig = {
+  apiKey: "AIzaSyADgdWqEOaAxzPakXcPk8sbD5uvo3r7Ju0",
+  authDomain: "na-chueak-phitthayasan.firebaseapp.com",
+  projectId: "na-chueak-phitthayasan",
+  storageBucket: "na-chueak-phitthayasan.firebasestorage.app",
+  messagingSenderId: "127524356300",
+  appId: "1:127524356300:web:9292777595a40f29684269",
+  measurementId: "G-XB322WXP30"
+};
+firebase.initializeApp(firebaseConfig);
+try { if (firebase.analytics) firebase.analytics(); } catch (_) {}
+const fsdb=firebase.firestore(), fauth=firebase.auth(), fstorage=firebase.storage();
 const BUCKET='ac-media';
-
+const firebaseError=err=>({message:err?.message||String(err||'เกิดข้อผิดพลาด'),code:err?.code||''});
+class Query {
+  constructor(table){this.table=table;this.action='select';this.payload=null;this.filters=[];this.sort=null;this.max=null;this.conflict=null}
+  select(){return this}
+  order(key,opt={}){this.sort={key,ascending:opt.ascending!==false};return this}
+  eq(key,value){this.filters.push([key,value]);return this}
+  limit(n){this.max=n;return this}
+  insert(v){this.action='insert';this.payload=v;return this}
+  update(v){this.action='update';this.payload=v;return this}
+  delete(){this.action='delete';return this}
+  upsert(v,opt={}){this.action='upsert';this.payload=v;this.conflict=opt.onConflict||'id';return this}
+  async run(){
+    try{
+      const col=fsdb.collection(this.table);
+      if(this.action==='insert'){
+        const rows=Array.isArray(this.payload)?this.payload:[this.payload],out=[];
+        for(const row of rows){const ref=col.doc();const saved={created_at:row.created_at||new Date().toISOString(),...row};await ref.set({...saved});out.push({...saved,id:ref.id})}
+        return {data:out,error:null};
+      }
+      if(this.action==='upsert'){
+        const rows=Array.isArray(this.payload)?this.payload:[this.payload],out=[];
+        for(const row of rows){const key=row[this.conflict];let ref=key?col.doc(String(key)):col.doc();await ref.set({...row},{merge:true});out.push({...row,id:ref.id})}
+        return {data:out,error:null};
+      }
+      let snap=await col.get(),rows=snap.docs.map(d=>({id:d.id,...d.data()}));
+      rows=rows.filter(r=>this.filters.every(([k,v])=>String(r[k]??'')===String(v??'')));
+      if(this.sort){const {key,ascending}=this.sort;rows.sort((a,b)=>{let x=a[key],y=b[key];if(x==null)x='';if(y==null)y='';let c=x<y?-1:x>y?1:0;return ascending?c:-c})}
+      if(this.max!=null)rows=rows.slice(0,this.max);
+      if(this.action==='update'||this.action==='delete'){
+        for(const row of rows){const ref=col.doc(String(row.id));if(this.action==='delete')await ref.delete();else await ref.set(this.payload,{merge:true})}
+        return {data:rows,error:null};
+      }
+      return {data:rows,error:null};
+    }catch(err){return {data:null,error:firebaseError(err)}}
+  }
+  then(resolve,reject){return this.run().then(resolve,reject)}
+}
+const db={
+ from(table){return new Query(table)},
+ auth:{
+  async getSession(){const u=fauth.currentUser;return {data:{session:u?{user:{id:u.uid,email:u.email,user_metadata:{full_name:u.displayName||''}}}:null},error:null}},
+  async signInWithPassword({email,password}){try{await fauth.signInWithEmailAndPassword(email,password);return {error:null}}catch(e){return {error:firebaseError(e)}}},
+  async signUp({email,password,options={}}){try{const c=await fauth.createUserWithEmailAndPassword(email,password);const d=options.data||{};if(d.full_name)await c.user.updateProfile({displayName:d.full_name});return {data:{user:{id:c.user.uid,email:c.user.email,identities:[{}]},session:{user:c.user}},error:null}}catch(e){return {data:null,error:firebaseError(e)}}},
+  async resend({email}){try{await fauth.sendSignInLinkToEmail(email,{url:location.origin+location.pathname,handleCodeInApp:true});return {error:null}}catch(e){return {error:firebaseError(e)}}},
+  async resetPasswordForEmail(email){try{await fauth.sendPasswordResetEmail(email);return {error:null}}catch(e){return {error:firebaseError(e)}}},
+  async updateUser({password}){try{if(!fauth.currentUser)throw new Error('กรุณาเข้าสู่ระบบใหม่');await fauth.currentUser.updatePassword(password);return {error:null}}catch(e){return {error:firebaseError(e)}}},
+  async signOut(){try{await fauth.signOut();return {error:null}}catch(e){return {error:firebaseError(e)}}},
+  onAuthStateChange(cb){return fauth.onAuthStateChanged(u=>cb(u?'SIGNED_IN':'SIGNED_OUT',u?{user:{id:u.uid,email:u.email,user_metadata:{full_name:u.displayName||''}}}:null))}
+ },
+ storage:{from(bucket){return {async upload(path,file){try{const ref=fstorage.ref().child(bucket+'/'+path);await ref.put(file,{contentType:file.type});return {error:null}}catch(e){return {error:firebaseError(e)}}},getPublicUrl(path){return {data:{publicUrl:`https://firebasestorage.googleapis.com/v0/b/${firebaseConfig.storageBucket}/o/${encodeURIComponent(bucket+'/'+path)}?alt=media`}}}}}},
+ async rpc(name){try{if(name==='ac_visit_stats'){const snap=await fsdb.collection('ac_visits').get(),rows=snap.docs.map(d=>d.data()),today=new Date().toISOString().slice(0,10);return {data:{total:rows.length,uniq:new Set(rows.map(r=>r.vid).filter(Boolean)).size,today:rows.filter(r=>String(r.created_at||'').slice(0,10)===today).length},error:null}}return {data:null,error:{message:'ไม่พบคำสั่ง '+name}}}catch(e){return {data:null,error:firebaseError(e)}}}
+};
 const $=id=>document.getElementById(id);
 const e=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const safeUrl=u=>{u=String(u||'').trim();return /^(https?:\/\/|mailto:|tel:|#|\/)/i.test(u)?u:(u?'https://'+u:'')};
@@ -357,7 +421,7 @@ async function loadPublic(){
     ST.S={...DEF,...Object.fromEntries(s.data.map(r=>[r.key,r.value]))};
     ST.news=n.data;ST.events=ev.data;ST.surveys=sv.data;ST.links=lk.data;ST.ok=true;
     const so=await db.from('ac_socials').select('*').order('sort',{ascending:true});
-    if(so.error)console.warn('ac_socials not ready (รัน supabase.sql ใหม่):',so.error);
+    if(so.error)console.warn('ac_socials not ready (ตรวจสอบคอลเลกชันใน Firebase Firestore):',so.error);
     ST.socials=so.error?[]:so.data;
     for(const [k,t,o] of [['council','ac_council','sort'],['lost','ac_lost','created_at'],['summary','ac_summary','created_at']]){const r=await db.from(t).select('*').order(o,{ascending:o==='sort'});ST[k]=r.error?[]:r.data}
     try{localStorage.setItem('ac_logo',safeImg(T('logo_url')))}catch(_){}
@@ -386,12 +450,12 @@ async function refreshUser(session){
 const domainOk=em=>{let d=String(T('lg_domain')||'').trim().toLowerCase();if(!d)return true;if(d[0]!=='@')d='@'+d;return String(em||'').toLowerCase().endsWith(d)};
 const MIN_PW=8;
 function authMsg(m){m=String(m||'');
-  if(/invalid login/i.test(m))return 'อีเมลหรือรหัสผ่านไม่ถูกต้อง';
-  if(/not confirmed/i.test(m))return 'ยังไม่ได้ยืนยันอีเมล — กรุณากดลิงก์ในอีเมลที่ส่งให้ตอนสมัคร';
-  if(/already (been )?registered/i.test(m))return 'อีเมลนี้สมัครไว้แล้ว — ลองเข้าสู่ระบบ หรือกด “ลืมรหัสผ่าน”';
+  if(/invalid login|wrong-password|user-not-found|invalid-credential/i.test(m))return 'อีเมลหรือรหัสผ่านไม่ถูกต้อง';
+  if(/not confirmed|email.*not verified/i.test(m))return 'กรุณายืนยันอีเมลก่อนเข้าสู่ระบบ';
+  if(/already (been )?registered|email-already-in-use/i.test(m))return 'อีเมลนี้สมัครไว้แล้ว — ลองเข้าสู่ระบบ หรือกด “ลืมรหัสผ่าน”';
   if(/same password|different from the old/i.test(m))return 'รหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสเดิม';
-  if(/password.*(least|short|weak)|weak/i.test(m))return 'รหัสผ่านสั้นหรือคาดเดาง่ายเกินไป — ใช้อย่างน้อย '+MIN_PW+' ตัวอักษร';
-  if(/rate limit|too many|only request this after|security purposes/i.test(m))return 'ทำรายการถี่เกินไป กรุณารอสักครู่แล้วลองใหม่';
+  if(/password.*(least|short|weak)|weak|weak-password/i.test(m))return 'รหัสผ่านสั้นหรือคาดเดาง่ายเกินไป — ใช้อย่างน้อย '+MIN_PW+' ตัวอักษร';
+  if(/rate limit|too many|only request this after|security purposes|too-many-requests/i.test(m))return 'ทำรายการถี่เกินไป กรุณารอสักครู่แล้วลองใหม่';
   if(/session missing/i.test(m))return 'ลิงก์หมดอายุ — กรุณากด “ลืมรหัสผ่าน” เพื่อขอลิงก์ใหม่';
   return m||'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง'}
 function amsg(t,m,resend){const el=$('amsg');if(!el)return;
@@ -638,7 +702,7 @@ async function sendFeedback(ev){
   ev.preventDefault();const f=ev.target,fd=new FormData(f),b=f.querySelector('button');b.disabled=true;
   const {error}=await db.from('ac_feedback').insert({name:fd.get('name'),email:fd.get('email')||null,category:fd.get('category'),subject:fd.get('subject')||null,detail:fd.get('detail')});
   b.disabled=false;
-  if(error){toast('ส่งไม่สำเร็จ: ตรวจสอบว่ารัน supabase.sql แล้ว');console.warn(error);return}
+  if(error){toast('ส่งไม่สำเร็จ: ตรวจสอบว่ามีคอลเลกชันใน Firebase Firestore และตั้งค่า Rules แล้ว');console.warn(error);return}
   f.reset();toast(T('fb_ok'));
 }
 
@@ -760,7 +824,7 @@ function admSettings(g,m){
 async function admTable(t,m){
   const cfg=TABLES[t];m.innerHTML='<p class="sub">กำลังโหลด...</p>';
   const {data,error}=await db.from(t).select('*').order(cfg.order[0],{ascending:cfg.order[1]});
-  if(error){m.innerHTML=`<h1>${cfg.title}</h1><div class="card2">โหลดไม่ได้: ${e(error.message)}<br><small class="sub">ตรวจสอบว่ารัน supabase.sql แล้ว</small></div>`;return}
+  if(error){m.innerHTML=`<h1>${cfg.title}</h1><div class="card2">โหลดไม่ได้: ${e(error.message)}<br><small class="sub">ตรวจสอบว่ามีคอลเลกชันใน Firebase Firestore และตั้งค่า Rules แล้ว</small></div>`;return}
   m.innerHTML=`<div class="topbar"><div><h1>${cfg.title}</h1><p class="sub">${data.length} รายการ</p></div><div class="row2">${t==='ac_council'?'<button class="btn btn-out" id="pullConnector">ดึงสมาชิกจากคอนนิวเตอร์</button>':''}<button class="btn btn-dark" id="add">+ เพิ่มใหม่</button></div></div>
    <div class="card2">${data.map(r=>`<div class="list-row"><div class="row2" style="min-width:0">${cfg.img&&safeImg(cfg.img(r))?`<img class="thumb" src="${e(cfg.img(r))}" alt="">`:''}<div style="min-width:0"><b>${e(cfg.label(r))}</b><small>${e(cfg.sub(r))}</small></div></div><div class="row2"><button class="btn btn-out btn-sm" data-ed="${r.id}">แก้ไข</button><button class="btn btn-out btn-sm" style="color:var(--red)" data-dl="${r.id}">ลบ</button></div></div>`).join('')||'<p class="sub">ยังไม่มีข้อมูล</p>'}</div>`;
   const edit=row=>{
@@ -830,7 +894,7 @@ async function admAdmins(m){
 /* ============ BOOT ============ */
 (async()=>{try{await loadPublic();await refreshUser()}catch(x){console.warn(x)}ST.ready=true;render();track()})();
 ;
-/* ============ LIVE UPDATE: ดึงข้อมูลจาก Supabase ทุก 5 วินาที ============ */
+/* ============ LIVE UPDATE: ดึงข้อมูลจาก Firebase Firestore ทุก 5 วินาที ============ */
 let liveRefreshBusy=false;
 setInterval(async()=>{
   if(!ST.ready || liveRefreshBusy || ST.recovery) return;
