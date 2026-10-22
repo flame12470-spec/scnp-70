@@ -227,6 +227,7 @@ footer li a:hover{text-decoration:underline}
  .adm aside .ag{position:fixed;left:0;right:0;top:64px;bottom:0;margin:0;background:#fff;padding:6px 12px 90px;overflow-y:auto;overscroll-behavior:auto;-webkit-overflow-scrolling:touch;align-content:start}
  .adm main{padding:84px 16px 90px}
 }
+#mef{display:grid;gap:14px;max-width:520px}#mef label{display:grid;gap:6px;font-size:13px;font-weight:500;color:var(--muted)}#mef input,#mef select{width:100%;padding:13px 14px;border:1px solid var(--line);border-radius:12px;font:inherit;background:#fff;color:var(--ink)}
 </style>
 </head>
 <body>
@@ -437,6 +438,21 @@ async function refreshUser(session){
   if(session===undefined){const {data}=await db.auth.getSession();session=data.session}
   ST.user=session?.user||null;ST.isAdmin=false;
   if(ST.user){try{const r=await db.from('ac_admins').select('email');ST.isAdmin=!r.error&&r.data.length>0}catch(_){}}
+  await loadProfile();
+}
+/* โปรไฟล์ที่ใช้งานจริงเก็บในตาราง ac_profiles (แก้เองไม่ได้ ต้องผ่านคำขอ+แอดมินอนุมัติ) */
+async function loadProfile(){
+  if(!ST.user){ST.profile=null;return}
+  try{
+    const r=await db.from('ac_profiles').select('*').eq('user_id',ST.user.id).maybeSingle();
+    if(r.error){ST.profileOff=true;ST.profile=null;return}
+    ST.profileOff=false;ST.profile=r.data||null;
+    if(!ST.profile){ /* สมาชิกที่สมัครไว้แล้วและมีข้อมูลใน metadata: ย้ายเข้าตารางให้อัตโนมัติ */
+      const md=ST.user.user_metadata||{};
+      if(md.role&&md.full_name){const row={user_id:ST.user.id,email:ST.user.email,full_name:md.full_name,grade:md.grade||'',room:md.room||'',role:md.role,student_id:md.student_id||''};
+        const ins=await db.from('ac_profiles').insert(row);if(!ins.error)ST.profile=row}
+    }
+  }catch(_){ST.profileOff=true}
 }
 const domainOk=em=>{let d=String(T('lg_domain')||'').trim().toLowerCase();if(!d)return true;if(d[0]!=='@')d='@'+d;return String(em||'').toLowerCase().endsWith(d)};
 const MIN_PW=8;
@@ -477,7 +493,7 @@ async function doUp(f){
   if(!data.session){ST.authMode='in';ST.msg={t:'ok',m:'สมัครสำเร็จ! ส่งลิงก์ยืนยันไปที่ '+em+' แล้ว — กดลิงก์ในอีเมลก่อน แล้วกลับมาเข้าสู่ระบบ'};return pLogin()}
   toast('สมัครและเข้าสู่ระบบแล้ว');
 }
-const needProfile=()=>!!(ST.user&&!ST.isAdmin&&!ST.recovery&&!(ST.user.user_metadata||{}).role&&!sessionStorage.getItem('profSkip'));
+const needProfile=()=>!!(ST.user&&!ST.isAdmin&&!ST.recovery&&!ST.profileOff&&!ST.profile);
 function profCheck(f){
   const role=String(f.get('role')||'student'),sid=String(f.get('student_id')||'').trim();
   if(role!=='teacher'){
@@ -488,9 +504,10 @@ function profCheck(f){
 }
 async function doProf(f){
   const c=profCheck(f);if(c.err)return amsg('err',c.err);
-  const {data,error}=await db.auth.updateUser({data:c.data});
-  if(error)return amsg('err',authMsg(error.message));
-  ST.user=data.user;toast('บันทึกข้อมูลแล้ว');location.hash='#/';render();
+  const row={user_id:ST.user.id,email:ST.user.email,...c.data};
+  const {error}=await db.from('ac_profiles').insert(row);
+  if(error)return amsg('err','บันทึกไม่สำเร็จ: '+error.message);
+  ST.profile=row;toast('บันทึกข้อมูลแล้ว');location.hash='#/';render();
 }
 /* ลืมรหัสผ่าน: ส่งรหัสยืนยันทางอีเมล แล้วกรอกรหัสในเว็บนี้ (ไม่ต้องกดลิงก์) */
 async function doForgot(f){
@@ -550,7 +567,9 @@ document.addEventListener('click',ev=>{const a=ev.target.closest('[data-go]');if
 function render(){
   if(!ST.ready)return showBoot();
   const r=route();
+  if(needProfile()&&r!=='/login'){location.hash='#/login';return}
   if(r==='/login')return pLogin();
+  if(r==='/me')return pMe();
   if(r==='/admin')return pAdmin();
   if(r.startsWith('/p/'))return pPage(r.slice(3));
   pHome();
@@ -612,8 +631,8 @@ const FORMS={
 function profHtml(){
   const u=ST.user;
   if(!u)return '<div style="height:34px"></div>';
-  const md=u.user_metadata||{},nm=md.full_name||u.email.split('@')[0];
-  return `<div style="display:flex;gap:12px;align-items:center;padding:30px 10px 14px;margin-bottom:6px;border-bottom:1px solid var(--line)"><div class="av" style="width:48px;height:48px;margin:0;font-size:20px;flex:none">${ic('user')}</div><div style="min-width:0"><b style="display:block;font-size:15px">${e(nm)}</b>${ROLE[md.role]?`<small class="sub" style="display:block">${ROLE[md.role]}</small>`:''}<small class="sub" style="display:block;word-break:break-all">${e(u.email)}</small>${md.grade&&md.room?`<small class="sub">${e(md.grade)}/${e(md.room)}${ST.isAdmin?' · แอดมิน':''}</small>`:ST.isAdmin?'<small class="sub">แอดมิน</small>':''}</div></div>`}
+  const md=ST.profile||{},nm=md.full_name||u.email.split('@')[0];
+  return `<div style="display:flex;gap:12px;align-items:center;padding:30px 10px 14px;margin-bottom:6px;border-bottom:1px solid var(--line)"><div class="av" style="width:48px;height:48px;margin:0;font-size:20px;flex:none">${ic('user')}</div><div style="min-width:0"><b style="display:block;font-size:15px">${e(nm)}</b>${ROLE[md.role]?`<small class="sub" style="display:block">${ROLE[md.role]}</small>`:''}<small class="sub" style="display:block;word-break:break-all">${e(u.email)}</small>${md.grade&&md.room?`<small class="sub">${e(md.grade)}/${e(md.room)}${ST.isAdmin?' · แอดมิน':''}</small>`:ST.isAdmin?'<small class="sub">แอดมิน</small>':''}</div></div><a href="#/me" onclick="closeModal()">${ic('user')}โปรไฟล์ของฉัน / ขอแก้ไขข้อมูล</a>`}
 function openMenu(){
   const cur=route(),sec=[['news','news','ข่าวประชาสัมพันธ์'],['upcoming','star','กิจกรรมที่กำลังจะมาถึง'],['surveys','survey','แบบสอบถาม'],['calendar','cal','ปฏิทินการศึกษา'],['feedback','mail','แจ้งปัญหา / ข้อเสนอแนะ']];
   $('modalRoot').innerHTML=`<div class="dbg" id="mbg"><nav class="drw"><button class="mx" onclick="closeModal()" aria-label="ปิด">✕</button>
@@ -653,6 +672,27 @@ function pPage(k){
   document.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{document.querySelectorAll('.chip').forEach(x=>x.classList.toggle('on',x===b));$('al').innerHTML=achvList(b.dataset.c)});
   document.querySelectorAll('[data-bk]').forEach(b=>b.onclick=()=>openBook(b.dataset.bk));if($('myb'))bkLoad();
 }
+async function pMe(){
+  if(!ST.user){location.hash='#/login';return}
+  const pr=ST.profile||{};
+  $('app').innerHTML=`${navHtml(true)}<main class="wrap pg"><div class="head"><h2 class="h2">${ic('user')}โปรไฟล์ของฉัน</h2><p class="sub">${e(ST.user.email)}</p></div>
+   <div class="panel"><b>ข้อมูลปัจจุบัน</b><p class="sub" style="margin-top:6px">${e(pr.full_name||'-')} · ${ROLE[pr.role]||'-'}${pr.student_id?' · รหัส '+e(pr.student_id):''}${pr.grade?' · '+e(pr.grade)+'/'+e(pr.room||''):''}</p></div>
+   <h3 class="dh">ขอแก้ไขข้อมูล</h3><div id="mereq"><p class="sub">กำลังโหลด...</p></div></main>${footer()}`;
+  onscroll=null;
+  const {data}=await db.from('ac_profile_req').select('*').eq('user_id',ST.user.id).order('created_at',{ascending:false}).limit(5);
+  const pend=(data||[]).find(x=>x.status==='pending');
+  const hist=(data||[]).filter(x=>x.status!=='pending').slice(0,3).map(x=>`<div class="list-row"><div><b>${e(x.full_name)}</b><small>${e(fd2(x.created_at))}${x.note?' · '+e(x.note):''}</small></div><span class="tag ${x.status==='approved'?'done':'new'}">${x.status==='approved'?'อนุมัติแล้ว':'ไม่อนุมัติ'}</span></div>`).join('');
+  $('mereq').innerHTML=(pend?`<div class="okm">มีคำขอรออนุมัติ: ${e(pend.full_name)} · ${ROLE[pend.role]||''}${pend.grade?' · '+e(pend.grade)+'/'+e(pend.room||''):''} — รอแอดมินตรวจสอบ</div><p style="margin-top:12px"><button class="btn btn-out btn-sm" id="mecx">ยกเลิกคำขอ</button></p>`:`<form id="mef" novalidate>${profFields()}<div id="mem" class="err"></div><div><button class="btn btn-dark" type="submit">ส่งคำขอแก้ไข</button></div></form><p class="sub" style="font-size:13px;margin-top:10px">การแก้ไขต้องให้แอดมินอนุมัติก่อนจึงจะมีผล</p>`)+(hist?`<h3 class="dh">คำขอก่อนหน้า</h3><div class="panel">${hist}</div>`:'');
+  if(pend){$('mecx').onclick=async()=>{await db.from('ac_profile_req').delete().eq('id',pend.id);pMe()};return}
+  const F=$('mef'),q=n=>F.querySelector('[name='+n+']');
+  q('role').value=pr.role||'student';q('name').value=pr.full_name||'';q('student_id').value=pr.student_id||'';q('grade').value=pr.grade||'';q('room').value=pr.room||'';
+  bindRole();$('rl').onchange();
+  F.onsubmit=async ev=>{ev.preventDefault();if(!F.checkValidity()){F.reportValidity();return}
+    const c=profCheck(new FormData(F));if(c.err){$('mem').textContent=c.err;return}
+    const {error}=await db.from('ac_profile_req').insert({user_id:ST.user.id,user_email:ST.user.email,...c.data});
+    if(error){$('mem').textContent='ส่งไม่สำเร็จ: '+error.message;return}
+    toast('ส่งคำขอแล้ว รอแอดมินอนุมัติ');pMe()};
+}
 /* ===== Student of the Month / จอง–ยืม / กระดานโปร่งใส / หน้าที่แอดมินเพิ่ม ===== */
 const baht=n=>Number(n||0).toLocaleString('th-TH');
 function achvCard(a){const i=safeImg(a.image_url);return `<div class="ev">${i?`<img src="${e(i)}" alt="" loading="lazy" style="border-radius:14px;margin-bottom:10px;aspect-ratio:4/3;width:100%;object-fit:cover">`:''}<span class="tag">${e(CAT[a.category]||'')}</span>${a.motm?' <span class="tag new">⭐ Student of the Month</span>':''}<b>${e(a.name)} <small class="sub">${e(a.grade||'')}</small></b><span style="font-weight:600">${e(a.title)}</span><p class="sub" style="font-size:13px;white-space:pre-line;margin-top:6px">${e(a.body||'')}</p><small class="sub">${e(fdate(a.awarded_at))}</small></div>`}
@@ -674,7 +714,7 @@ async function bkLoad(){const el=$('myb');if(!el||!ST.user)return;
 function openBook(id){
   if(!ST.user){location.hash='#/login';return}
   const r=ST.res.find(x=>String(x.id)===String(id));if(!r)return;
-  const sl=String(T('bk_slots')).split('\n').map(x=>x.trim()).filter(Boolean),md=ST.user.user_metadata||{};
+  const sl=String(T('bk_slots')).split('\n').map(x=>x.trim()).filter(Boolean),md=ST.profile||{};
   $('modalRoot').innerHTML=`<div class="modal" id="mbg"><div class="mbox"><button class="mx" onclick="closeModal()" aria-label="ปิด">✕</button><div class="mt"><h3>${e(r.name)}</h3><form class="f" id="bkf"><div class="two"><label class="l">วันที่<input type="date" name="day" min="${iso(new Date())}" required></label><label class="l">ช่วงเวลา<select name="slot">${sl.map(x=>`<option>${e(x)}</option>`).join('')}</select></label></div>${r.kind==='equipment'&&r.qty>1?`<label class="l">จำนวน (สูงสุด ${r.qty})<input type="number" name="qty" min="1" max="${r.qty}" value="1"></label>`:''}<label class="l">หมายเหตุ / ใช้ทำอะไร<input name="note" maxlength="200"></label><div id="bkm" class="err"></div><div><button class="btn btn-red" type="submit">ส่งคำขอ</button></div></form></div></div></div>`;
   $('mbg').onclick=ev=>{if(ev.target.id==='mbg')closeModal()};document.body.style.overflow='hidden';
   $('bkf').onsubmit=async ev=>{ev.preventDefault();const f=new FormData(ev.target),b=ev.target.querySelector('button');b.disabled=true;
@@ -779,6 +819,12 @@ async function sendFeedback(ev){
   f.reset();toast(T('fb_ok'));
 }
 
+const selH=(l,n,list)=>`<label>${l}<select name="${n}" required><option value="" disabled selected>เลือก</option>${String(list).split('\n').map(x=>x.trim()).filter(Boolean).map(x=>`<option>${e(x)}</option>`).join('')}</select></label>`;
+const profFields=()=>`<label>สถานะ<select name="role" id="rl"><option value="student">นักเรียน</option><option value="guardian">ผู้ปกครอง / บุคคลอื่น</option><option value="teacher">ครู</option></select></label><label><span id="nml">ชื่อ–นามสกุล</span><input name="name" type="text" autocomplete="name" required maxlength="120"></label><label id="sidw"><span id="sidl">เลขประจำตัวนักเรียน</span><input name="student_id" id="sid" type="text" inputmode="numeric" autocomplete="off" required maxlength="20"></label><div id="grw" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">${selH('ระดับชั้น','grade',T('lg_grades'))}${selH('ห้อง','room',T('lg_rooms'))}</div>`;
+function bindRole(){const rl=$('rl');if(!rl)return;rl.onchange=()=>{const v=rl.value,t=v==='teacher';
+  $('nml').textContent=t?'ชื่อครู (ชื่อ–นามสกุล)':'ชื่อ–นามสกุล';
+  $('sidl').textContent=v==='guardian'?'เลขประจำตัวนักเรียนของบุตร/หลาน':'เลขประจำตัวนักเรียน';
+  $('sidw').hidden=t;$('sid').disabled=t;$('grw').hidden=t;$('grw').querySelectorAll('select').forEach(x=>x.disabled=t)}}
 function pLogin(){
   const np=needProfile(),m=ST.recovery?'rec':np?'prof':(ST.authMode==='code'&&!ST.fEmail?'forgot':ST.authMode||'in');
   if(ST.user&&!ST.recovery&&!np){location.hash=ST.isAdmin?'#/admin':'#/';return}
@@ -786,7 +832,7 @@ function pLogin(){
   const msg=ST.msg||(ss?{t:'err',m:ss}:null);ST.msg=null;
   const H={in:[T('lg_title'),T('lg_sub')],
     up:['สมัครใช้งานครั้งแรก','สร้างบัญชีด้วยอีเมลและรหัสผ่าน หรือเข้าด้วย Google'],
-    prof:['กรอกข้อมูลเพิ่มเติม','บอกสถานะและเลขประจำตัวนักเรียน เพื่อให้สภานักเรียนยืนยันตัวตนได้'],
+    prof:['ตั้งชื่อและชั้น/ห้องก่อนเริ่มใช้งาน','ข้อมูลนี้ใช้ในเมนูต่าง ๆ ของเว็บ หากต้องการแก้ภายหลังต้องส่งคำขอให้แอดมินอนุมัติ'],
     code:['กรอกรหัสยืนยัน','กรอกรหัสที่ได้รับทางอีเมล แล้วตั้งรหัสผ่านใหม่'],
     forgot:['ลืมรหัสผ่าน','กรอกอีเมลที่สมัครไว้ ระบบจะส่งรหัสยืนยันไปให้ แล้วนำมากรอกในเว็บนี้เพื่อตั้งรหัสผ่านใหม่'],
     rec:['ตั้งรหัสผ่านใหม่','กรอกรหัสผ่านใหม่ของคุณ (อย่างน้อย '+MIN_PW+' ตัวอักษร)']}[m];
@@ -795,9 +841,9 @@ function pLogin(){
   const btn=t=>`<button class="btn btn-dark abtn" id="asub">${e(t)}</button>`;
   let body='';
   if(m==='in')body=fld('อีเมล','email','email','email')+fld('รหัสผ่าน','password','password','current-password')+btn(T('lg_btn'))+`<br><button type="button" class="alink" data-m="forgot">ลืมรหัสผ่าน?</button>`;
-  const pf=`<label>สถานะ<select name="role" id="rl"><option value="student">นักเรียน</option><option value="guardian">ผู้ปกครอง / บุคคลอื่น</option><option value="teacher">ครู</option></select></label><label><span id="nml">ชื่อ–นามสกุล</span><input name="name" type="text" autocomplete="name" required maxlength="120"></label><label id="sidw"><span id="sidl">เลขประจำตัวนักเรียน</span><input name="student_id" id="sid" type="text" inputmode="numeric" autocomplete="off" required maxlength="20"></label><div id="grw" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">${sel('ระดับชั้น','grade',T('lg_grades'))}${sel('ห้อง','room',T('lg_rooms'))}</div>`;
+  const pf=profFields();
   if(m==='up')body=pf+fld('อีเมล','email','email','email')+fld('รหัสผ่าน (อย่างน้อย '+MIN_PW+' ตัวอักษร)','password','password','new-password','minlength="'+MIN_PW+'"')+fld('ยืนยันรหัสผ่าน','password2','password','new-password')+btn('สมัครใช้งาน');
-  if(m==='prof')body=pf+btn('บันทึกข้อมูล')+`<br><button type="button" class="alink" id="pskip">ไว้ทีหลัง</button> · <button type="button" class="alink" id="plo">ออกจากระบบ</button>`;
+  if(m==='prof')body=pf+btn('บันทึกข้อมูล')+`<br><button type="button" class="alink" id="plo">ออกจากระบบ</button>`;
   if(m==='code')body=fld('รหัสยืนยัน (ที่ได้รับทางอีเมล)','code','text','one-time-code','inputmode="numeric" maxlength="10"')+fld('รหัสผ่านใหม่','password','password','new-password','minlength="'+MIN_PW+'"')+fld('ยืนยันรหัสผ่านใหม่','password2','password','new-password')+btn('ตั้งรหัสผ่านใหม่')+`<br><button type="button" class="alink" data-m="forgot">ขอรหัสใหม่</button>`;
   if(m==='forgot')body=fld('อีเมล','email','email','email')+btn('ส่งรหัสยืนยัน')+`<br><button type="button" class="alink" data-m="in">← กลับไปเข้าสู่ระบบ</button>`;
   if(m==='rec')body=fld('รหัสผ่านใหม่','password','password','new-password','minlength="'+MIN_PW+'"')+fld('ยืนยันรหัสผ่านใหม่','password2','password','new-password')+btn('บันทึกรหัสผ่านใหม่');
@@ -811,11 +857,8 @@ function pLogin(){
   document.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{ST.authMode=b.dataset.m;pLogin()});
   if($('gbtn'))$('gbtn').onclick=async()=>{const {error}=await db.auth.signInWithOAuth({provider:'google',options:{redirectTo:SITE_URL}});if(error)amsg('err',authMsg(error.message))};
   if(m==='prof'){const md=ST.user.user_metadata||{},nf=$('af').querySelector('[name=name]');if(nf)nf.value=md.full_name||md.name||'';
-    $('pskip').onclick=()=>{sessionStorage.setItem('profSkip','1');location.hash='#/';render()};$('plo').onclick=logout}
-  const rl=$('rl');if(rl)rl.onchange=()=>{const v=rl.value,t=v==='teacher';
-    $('nml').textContent=t?'ชื่อครู (ชื่อ–นามสกุล)':'ชื่อ–นามสกุล';
-    $('sidl').textContent=v==='guardian'?'เลขประจำตัวนักเรียนของบุตร/หลาน':'เลขประจำตัวนักเรียน';
-    $('sidw').hidden=t;$('sid').disabled=t;$('grw').hidden=t;$('grw').querySelectorAll('select').forEach(x=>x.disabled=t)};
+    $('plo').onclick=logout}
+  bindRole();
   $('af').onsubmit=async ev=>{
     ev.preventDefault();const f=ev.target;
     if(!f.checkValidity()){f.reportValidity();return}
@@ -827,7 +870,7 @@ function pLogin(){
 }
 
 /* ============ ADMIN ============ */
-const NAVS=[['เนื้อหาเว็บไซต์',SCHEMA.map(s=>[s.g,s.title])],['ข้อมูล',[['ac_news','ข่าวประชาสัมพันธ์'],['ac_events','กิจกรรม / ปฏิทิน'],['ac_surveys','แบบสอบถาม'],['ac_socials','โซเชียล / ช่องทางติดต่อ'],['ac_links','ลิงก์ฟุตเตอร์']]],['ระบบใหม่',[['ac_achv','Student of the Month / คลังผลงาน'],['ac_res','พื้นที่ / อุปกรณ์ให้ยืม'],['ac_book','รายการจอง / ยืม'],['ac_budget','งบประมาณสภาฯ'],['ac_issues','ติดตามเรื่องร้องเรียน'],['ac_pages','หน้าเมนูที่เพิ่มเอง']]],['หน้าต่าง ๆ',[['ac_council','ทำเนียบสภา'],['ac_lost','ของหาย–ได้คืน'],['ac_summary','สรุปก่อนสอบ']]],['ระบบ',[['users','สมาชิกในระบบ'],['visits','สถิติผู้เข้าชม'],['inbox','กล่องข้อความ / เรื่องที่ส่งเข้ามา'],['admins','ผู้ดูแลระบบ']]]];
+const NAVS=[['เนื้อหาเว็บไซต์',SCHEMA.map(s=>[s.g,s.title])],['ข้อมูล',[['ac_news','ข่าวประชาสัมพันธ์'],['ac_events','กิจกรรม / ปฏิทิน'],['ac_surveys','แบบสอบถาม'],['ac_socials','โซเชียล / ช่องทางติดต่อ'],['ac_links','ลิงก์ฟุตเตอร์']]],['ระบบใหม่',[['ac_achv','Student of the Month / คลังผลงาน'],['ac_res','พื้นที่ / อุปกรณ์ให้ยืม'],['ac_book','รายการจอง / ยืม'],['ac_budget','งบประมาณสภาฯ'],['ac_issues','ติดตามเรื่องร้องเรียน'],['ac_pages','หน้าเมนูที่เพิ่มเอง']]],['หน้าต่าง ๆ',[['ac_council','ทำเนียบสภา'],['ac_lost','ของหาย–ได้คืน'],['ac_summary','สรุปก่อนสอบ']]],['ระบบ',[['users','สมาชิกในระบบ'],['preq','คำขอแก้ไขโปรไฟล์'],['visits','สถิติผู้เข้าชม'],['inbox','กล่องข้อความ / เรื่องที่ส่งเข้ามา'],['admins','ผู้ดูแลระบบ']]]];
 async function pAdmin(){
   if(!ST.user){
     sessionStorage.setItem('loginErr','กรุณาเข้าสู่ระบบก่อนเข้าพื้นที่ผู้ดูแล');
@@ -859,6 +902,7 @@ async function renderAdminTab(){
   if(SCHEMA.find(s=>s.g===t))return admSettings(t,m);
   if(TABLES[t])return admTable(t,m);
   if(t==='users')return admUsers(m);
+  if(t==='preq')return admPReq(m);
   if(t==='visits')return admVisits(m);
   if(t==='inbox')return admInbox(m);
   if(t==='admins')return admAdmins(m);
@@ -960,6 +1004,20 @@ async function admTable(t,m){
     toast('ลบแล้ว');await loadPublic();admTable(t,m);
   });
 }
+async function admPReq(m){
+  if(!ST.quiet)m.innerHTML='<p class="sub">กำลังโหลด...</p>';
+  const {data,error}=await db.from('ac_profile_req').select('*').order('created_at',{ascending:false}).limit(100);
+  if(error){m.innerHTML=`<h1>คำขอแก้ไขโปรไฟล์</h1><div class="card2">โหลดไม่ได้: ${e(error.message)}<br><small class="sub">รัน supabase_add_v2.sql ฉบับล่าสุดก่อน</small></div>`;return}
+  const ids=[...new Set(data.map(x=>x.user_id))],pr=ids.length?((await db.from('ac_profiles').select('*').in('user_id',ids)).data||[]):[];
+  const cur=id=>pr.find(x=>x.user_id===id)||{},line=o=>`${e(o.full_name||'-')} · ${ROLE[o.role]||'-'}${o.student_id?' · รหัส '+e(o.student_id):''}${o.grade?' · '+e(o.grade)+'/'+e(o.room||''):''}`;
+  m.innerHTML=`<h1>คำขอแก้ไขโปรไฟล์</h1><p class="sub">สมาชิกขอแก้ไขข้อมูลเอง — อนุมัติแล้วข้อมูลจึงจะเปลี่ยน</p><div class="card2">${data.filter(x=>x.status==='pending').map(x=>`<div class="list-row" style="flex-wrap:wrap;align-items:flex-start"><div style="min-width:0;flex:1 1 260px"><b style="word-break:break-all">${e(x.user_email)}</b><small>เดิม: ${line(cur(x.user_id))}</small><small style="color:var(--ink);font-weight:600">ขอเป็น: ${line(x)}</small><small>${e(fd2(x.created_at))}</small></div><div class="row2"><button class="btn btn-dark btn-sm" data-pq="1" data-id="${x.id}">อนุมัติ</button><button class="btn btn-out btn-sm" data-pq="0" data-id="${x.id}" style="color:var(--red)">ไม่อนุมัติ</button></div></div>`).join('')||'<p class="sub">ไม่มีคำขอรออนุมัติ</p>'}</div>
+  <h3 class="dh">ที่ตัดสินแล้ว</h3><div class="card2">${data.filter(x=>x.status!=='pending').slice(0,30).map(x=>`<div class="list-row"><div><b style="word-break:break-all">${e(x.user_email)}</b><small>${line(x)} · ${e(fd2(x.created_at))}${x.note?' · '+e(x.note):''}</small></div><span class="tag ${x.status==='approved'?'done':'new'}">${x.status==='approved'?'อนุมัติแล้ว':'ไม่อนุมัติ'}</span></div>`).join('')||'<p class="sub">ยังไม่มี</p>'}</div>`;
+  m.querySelectorAll('[data-pq]').forEach(b=>b.onclick=async()=>{
+    let note=null;if(b.dataset.pq==='0'){note=prompt('เหตุผลที่ไม่อนุมัติ (ไม่บังคับ)');if(note===null)return}
+    b.disabled=true;const r=await db.rpc('ac_profile_decide',{rid:Number(b.dataset.id),ok:b.dataset.pq==='1',reason:note||null});
+    if(r.error){alert('ทำรายการไม่สำเร็จ\n\n'+r.error.message);b.disabled=false;return}
+    toast('เรียบร้อยแล้ว');admPReq(m)});
+}
 const ROLE={student:'นักเรียน',guardian:'ผู้ปกครอง/บุคคลอื่น',teacher:'ครู'};
 async function admUsers(m){
   if(!ST.quiet)m.innerHTML='<p class="sub">กำลังโหลด...</p>';
@@ -1009,11 +1067,11 @@ let liveBusy=false,liveT=null;
 const hasModal=()=>!!document.querySelector('#modalRoot .modal, #modalRoot .dbg');
 const typing=()=>{const a=document.activeElement;return !!(a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)&&a.type!=='button')};
 const dirty=()=>[...document.querySelectorAll('#app input:not([type=button]), #app textarea, #app select')].some(el=>!el.disabled&&el.type!=='hidden'&&el.type!=='checkbox'&&String(el.value||'').trim()!=='');
-const liveSig=()=>JSON.stringify([ST.S,ST.news,ST.events,ST.surveys,ST.links,ST.socials,ST.council,ST.lost,ST.summary,ST.achv,ST.res,ST.budget,ST.issues,ST.xpages]);
+const liveSig=()=>JSON.stringify([ST.S,ST.news,ST.events,ST.surveys,ST.links,ST.socials,ST.council,ST.lost,ST.summary,ST.achv,ST.res,ST.budget,ST.issues,ST.xpages,ST.profile]);
 async function liveRefresh(kick){
   if(!ST.ready||liveBusy||ST.recovery||hasModal())return;
   const r=route();
-  if(r==='/login')return;
+  if(r==='/login'||r==='/me')return;
   liveBusy=true;
   try{
     if(r==='/admin'){
@@ -1025,7 +1083,7 @@ async function liveRefresh(kick){
     }
     if(typing()||dirty())return;
     const y=scrollY,before=liveSig();
-    await loadPublic();
+    await loadPublic();await loadProfile();
     try{const v=await db.rpc('ac_visit_stats');if(!v.error&&v.data)ST.stats=v.data}catch(_){}
     const el=$('vs');if(el)el.textContent=vsText();
     /* วาดหน้าใหม่เฉพาะเมื่อข้อมูลเปลี่ยนจริง — ไม่งั้นไม่แตะหน้าจอ จะได้ไม่กระพริบ */
