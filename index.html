@@ -242,10 +242,10 @@ const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 /* ที่อยู่เว็บที่ลิงก์ในอีเมลจะพากลับมา (ต้องตรงกับ Redirect URLs ใน Supabase) — ถ้าเปิดไฟล์จากเครื่องจะไม่ส่ง ให้ใช้ Site URL แทน */
 const SITE_URL=/^https?:$/.test(location.protocol)?location.origin+location.pathname:undefined;
 /* ลิงก์ในอีเมลหมดอายุ/ใช้ไปแล้ว: Supabase ส่ง error กลับมาทาง # — แจ้งเป็นภาษาไทย */
-if(/error_code=|error_description=/.test(location.hash)){
-  const ec=(location.hash.match(/error_code=([^&]+)/)||[])[1]||'';
-  setTimeout(()=>toast(ec==='otp_expired'?'ลิงก์หมดอายุหรือถูกใช้ไปแล้ว กรุณาขอลิงก์ใหม่อีกครั้ง':'ลิงก์ไม่ถูกต้อง กรุณาลองใหม่'),800);
-  history.replaceState(null,'',location.pathname+location.search);
+if(/error_code=|error_description=/.test(location.hash+location.search)){
+  const q=decodeURIComponent((location.hash+location.search).replace(/\+/g,' ')),ec=(q.match(/error_code=([^&]+)/)||[])[1]||'';
+  setTimeout(()=>toast(ec==='otp_expired'?'ลิงก์หมดอายุหรือถูกใช้ไปแล้ว กรุณาลองใหม่อีกครั้ง':/provider|oauth/i.test(q)?'เข้าสู่ระบบด้วย Google ไม่สำเร็จ — ตรวจว่าเปิดใช้ Google ใน Supabase แล้ว':'ลิงก์ไม่ถูกต้อง กรุณาลองใหม่'),800);
+  history.replaceState(null,'',location.pathname);
 }
 const BUCKET='ac-media';
 
@@ -443,6 +443,7 @@ const MIN_PW=8;
 function authMsg(m){m=String(m||'');
   if(/invalid login/i.test(m))return 'อีเมลหรือรหัสผ่านไม่ถูกต้อง';
   if(/banned/i.test(m))return 'บัญชีนี้ถูกระงับการใช้งาน — โปรดติดต่อสภานักเรียน';
+  if(/provider.*not enabled|unsupported provider/i.test(m))return 'ยังไม่ได้เปิดใช้การเข้าสู่ระบบด้วย Google ใน Supabase';
   if(/not confirmed/i.test(m))return 'ยังไม่ได้ยืนยันอีเมล — กรุณากดลิงก์ในอีเมลที่ส่งให้ตอนสมัคร';
   if(/already (been )?registered/i.test(m))return 'อีเมลนี้สมัครไว้แล้ว — ลองเข้าสู่ระบบ หรือกด “ลืมรหัสผ่าน”';
   if(/same password|different from the old/i.test(m))return 'รหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสเดิม';
@@ -476,11 +477,40 @@ async function doUp(f){
   if(!data.session){ST.authMode='in';ST.msg={t:'ok',m:'สมัครสำเร็จ! ส่งลิงก์ยืนยันไปที่ '+em+' แล้ว — กดลิงก์ในอีเมลก่อน แล้วกลับมาเข้าสู่ระบบ'};return pLogin()}
   toast('สมัครและเข้าสู่ระบบแล้ว');
 }
+const needProfile=()=>!!(ST.user&&!ST.isAdmin&&!ST.recovery&&!(ST.user.user_metadata||{}).role&&!sessionStorage.getItem('profSkip'));
+function profCheck(f){
+  const role=String(f.get('role')||'student'),sid=String(f.get('student_id')||'').trim();
+  if(role!=='teacher'){
+    if(!f.get('grade')||!f.get('room'))return {err:'กรุณาเลือกระดับชั้นและห้อง'};
+    if(!/^[0-9A-Za-z\-\/]{3,20}$/.test(sid))return {err:'กรุณากรอกเลขประจำตัวนักเรียนให้ถูกต้อง'};
+  }
+  return {data:{full_name:String(f.get('name')||'').trim(),grade:String(f.get('grade')||''),room:String(f.get('room')||''),role,student_id:role==='teacher'?'':sid}};
+}
+async function doProf(f){
+  const c=profCheck(f);if(c.err)return amsg('err',c.err);
+  const {data,error}=await db.auth.updateUser({data:c.data});
+  if(error)return amsg('err',authMsg(error.message));
+  ST.user=data.user;toast('บันทึกข้อมูลแล้ว');location.hash='#/';render();
+}
+/* ลืมรหัสผ่าน: ส่งรหัสยืนยันทางอีเมล แล้วกรอกรหัสในเว็บนี้ (ไม่ต้องกดลิงก์) */
 async function doForgot(f){
   const em=String(f.get('email')).trim();
-  const {error}=await db.auth.resetPasswordForEmail(em,{redirectTo:SITE_URL});
+  const {error}=await db.auth.resetPasswordForEmail(em);
   if(error)return amsg('err',authMsg(error.message));
-  amsg('ok','หากอีเมลนี้มีบัญชีอยู่ ระบบได้ส่งลิงก์ตั้งรหัสผ่านใหม่ให้แล้ว — ตรวจกล่องจดหมาย (รวมถึงสแปม)');
+  ST.fEmail=em;ST.authMode='code';ST.msg={t:'ok',m:'ส่งรหัสยืนยันไปที่ '+em+' แล้ว (ถ้าอีเมลนี้มีบัญชี) — ตรวจกล่องจดหมายรวมถึงสแปม รหัสมีอายุสั้น'};pLogin();
+}
+async function doCode(f){
+  const pw=String(f.get('password')),code=String(f.get('code')).replace(/\s/g,'');
+  if(pw.length<MIN_PW)return amsg('err','รหัสผ่านต้องมีอย่างน้อย '+MIN_PW+' ตัวอักษร');
+  if(pw!==f.get('password2'))return amsg('err','รหัสผ่านสองช่องไม่ตรงกัน');
+  ST.codeFlow=true;
+  try{
+    const v=await db.auth.verifyOtp({email:ST.fEmail,token:code,type:'recovery'});
+    if(v.error)return amsg('err',/expired|invalid/i.test(v.error.message)?'รหัสไม่ถูกต้องหรือหมดอายุ — กด “ขอรหัสใหม่” ได้':authMsg(v.error.message));
+    const u=await db.auth.updateUser({password:pw});
+    if(u.error){await db.auth.signOut();ST.user=null;ST.isAdmin=false;return amsg('err',authMsg(u.error.message))}
+    ST.authMode='in';ST.fEmail='';toast('ตั้งรหัสผ่านใหม่เรียบร้อยแล้ว');location.hash='#/';render();
+  }finally{ST.codeFlow=false}
 }
 async function doRec(f){
   const pw=String(f.get('password'));
@@ -493,6 +523,7 @@ async function doRec(f){
 async function logout(){ST.recovery=false;await db.auth.signOut();ST.user=null;ST.isAdmin=false;location.hash='#/';render();toast('ออกจากระบบแล้ว')}
 /* หมายเหตุ: ไม่ await เรียก supabase ภายใน callback โดยตรง (กัน deadlock) จึงใช้ setTimeout */
 db.auth.onAuthStateChange((ev,session)=>{
+  if(ev==='PASSWORD_RECOVERY'&&ST.codeFlow)return;
   if(ev==='PASSWORD_RECOVERY'){ST.recovery=true;ST.user=session?.user||null;location.hash='#/login';setTimeout(render,0);return}
   if(ev==='SIGNED_IN'||ev==='INITIAL_SESSION'||ev==='USER_UPDATED'){
     setTimeout(async()=>{
@@ -500,7 +531,8 @@ db.auth.onAuthStateChange((ev,session)=>{
       if(ST.user&&!ST.isAdmin&&!domainOk(ST.user.email)){
         await db.auth.signOut();ST.user=null;sessionStorage.setItem('loginErr','บัญชีนี้ไม่ได้รับอนุญาต — ใช้ได้เฉพาะอีเมลโดเมน '+T('lg_domain'));location.hash='#/login';
       }
-      render();
+      if(needProfile()&&route()!=='/login')location.hash='#/login';
+      if(!ST.codeFlow)render();
     },0);
   }
 });
@@ -748,30 +780,38 @@ async function sendFeedback(ev){
 }
 
 function pLogin(){
-  const m=ST.recovery?'rec':(ST.authMode||'in');
-  if(ST.user&&!ST.recovery){location.hash=ST.isAdmin?'#/admin':'#/';return}
+  const np=needProfile(),m=ST.recovery?'rec':np?'prof':(ST.authMode==='code'&&!ST.fEmail?'forgot':ST.authMode||'in');
+  if(ST.user&&!ST.recovery&&!np){location.hash=ST.isAdmin?'#/admin':'#/';return}
   const ss=sessionStorage.getItem('loginErr');sessionStorage.removeItem('loginErr');
   const msg=ST.msg||(ss?{t:'err',m:ss}:null);ST.msg=null;
   const H={in:[T('lg_title'),T('lg_sub')],
-    up:['สมัครใช้งานครั้งแรก','สร้างบัญชีด้วยอีเมลและรหัสผ่าน แล้วยืนยันอีเมลเพื่อเริ่มใช้งาน'],
-    forgot:['ลืมรหัสผ่าน','กรอกอีเมลที่สมัครไว้ ระบบจะส่งลิงก์สำหรับตั้งรหัสผ่านใหม่ให้'],
+    up:['สมัครใช้งานครั้งแรก','สร้างบัญชีด้วยอีเมลและรหัสผ่าน หรือเข้าด้วย Google'],
+    prof:['กรอกข้อมูลเพิ่มเติม','บอกสถานะและเลขประจำตัวนักเรียน เพื่อให้สภานักเรียนยืนยันตัวตนได้'],
+    code:['กรอกรหัสยืนยัน','กรอกรหัสที่ได้รับทางอีเมล แล้วตั้งรหัสผ่านใหม่'],
+    forgot:['ลืมรหัสผ่าน','กรอกอีเมลที่สมัครไว้ ระบบจะส่งรหัสยืนยันไปให้ แล้วนำมากรอกในเว็บนี้เพื่อตั้งรหัสผ่านใหม่'],
     rec:['ตั้งรหัสผ่านใหม่','กรอกรหัสผ่านใหม่ของคุณ (อย่างน้อย '+MIN_PW+' ตัวอักษร)']}[m];
   const fld=(l,n,t,ac,x='')=>`<label>${l}<input name="${n}" type="${t}" autocomplete="${ac}" required ${x}></label>`;
   const sel=(l,n,list)=>`<label>${l}<select name="${n}" required><option value="" disabled selected>เลือก</option>${String(list).split('\n').map(x=>x.trim()).filter(Boolean).map(x=>`<option>${e(x)}</option>`).join('')}</select></label>`;
   const btn=t=>`<button class="btn btn-dark abtn" id="asub">${e(t)}</button>`;
   let body='';
   if(m==='in')body=fld('อีเมล','email','email','email')+fld('รหัสผ่าน','password','password','current-password')+btn(T('lg_btn'))+`<br><button type="button" class="alink" data-m="forgot">ลืมรหัสผ่าน?</button>`;
-  if(m==='up')body=`<label>สถานะ<select name="role" id="rl"><option value="student">นักเรียน</option><option value="guardian">ผู้ปกครอง / บุคคลอื่น</option><option value="teacher">ครู</option></select></label><label><span id="nml">ชื่อ–นามสกุล</span><input name="name" type="text" autocomplete="name" required maxlength="120"></label><label id="sidw"><span id="sidl">เลขประจำตัวนักเรียน</span><input name="student_id" id="sid" type="text" inputmode="numeric" autocomplete="off" required maxlength="20"></label><div id="grw" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">${sel('ระดับชั้น','grade',T('lg_grades'))}${sel('ห้อง','room',T('lg_rooms'))}</div>`+fld('อีเมล','email','email','email')+fld('รหัสผ่าน (อย่างน้อย '+MIN_PW+' ตัวอักษร)','password','password','new-password','minlength="'+MIN_PW+'"')+fld('ยืนยันรหัสผ่าน','password2','password','new-password')+btn('สมัครใช้งาน');
-  if(m==='forgot')body=fld('อีเมล','email','email','email')+btn('ส่งลิงก์ตั้งรหัสผ่านใหม่')+`<br><button type="button" class="alink" data-m="in">← กลับไปเข้าสู่ระบบ</button>`;
+  const pf=`<label>สถานะ<select name="role" id="rl"><option value="student">นักเรียน</option><option value="guardian">ผู้ปกครอง / บุคคลอื่น</option><option value="teacher">ครู</option></select></label><label><span id="nml">ชื่อ–นามสกุล</span><input name="name" type="text" autocomplete="name" required maxlength="120"></label><label id="sidw"><span id="sidl">เลขประจำตัวนักเรียน</span><input name="student_id" id="sid" type="text" inputmode="numeric" autocomplete="off" required maxlength="20"></label><div id="grw" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">${sel('ระดับชั้น','grade',T('lg_grades'))}${sel('ห้อง','room',T('lg_rooms'))}</div>`;
+  if(m==='up')body=pf+fld('อีเมล','email','email','email')+fld('รหัสผ่าน (อย่างน้อย '+MIN_PW+' ตัวอักษร)','password','password','new-password','minlength="'+MIN_PW+'"')+fld('ยืนยันรหัสผ่าน','password2','password','new-password')+btn('สมัครใช้งาน');
+  if(m==='prof')body=pf+btn('บันทึกข้อมูล')+`<br><button type="button" class="alink" id="pskip">ไว้ทีหลัง</button> · <button type="button" class="alink" id="plo">ออกจากระบบ</button>`;
+  if(m==='code')body=fld('รหัสยืนยัน (ที่ได้รับทางอีเมล)','code','text','one-time-code','inputmode="numeric" maxlength="10"')+fld('รหัสผ่านใหม่','password','password','new-password','minlength="'+MIN_PW+'"')+fld('ยืนยันรหัสผ่านใหม่','password2','password','new-password')+btn('ตั้งรหัสผ่านใหม่')+`<br><button type="button" class="alink" data-m="forgot">ขอรหัสใหม่</button>`;
+  if(m==='forgot')body=fld('อีเมล','email','email','email')+btn('ส่งรหัสยืนยัน')+`<br><button type="button" class="alink" data-m="in">← กลับไปเข้าสู่ระบบ</button>`;
   if(m==='rec')body=fld('รหัสผ่านใหม่','password','password','new-password','minlength="'+MIN_PW+'"')+fld('ยืนยันรหัสผ่านใหม่','password2','password','new-password')+btn('บันทึกรหัสผ่านใหม่');
   const tabs=(m==='in'||m==='up')?`<div class="atabs"><button type="button" data-m="in" class="${m==='in'?'on':''}">เข้าสู่ระบบ</button><button type="button" data-m="up" class="${m==='up'?'on':''}">สมัครใช้งาน</button></div>`:'';
   $('app').innerHTML=`<div class="page-login">${m==='rec'?'':`<a class="back" href="#/">← ${e(T('lg_back'))}</a>`}
   <div class="lbox">${safeImg(T('logo_url'))?`<div style="margin:0 auto"><img src="${e(safeImg(T('logo_url')))}" style="height:68px;margin:auto" alt=""></div>`:''}
    <div class="eyebrow">${e(T('lg_eyebrow'))}</div><h1>${e(H[0])}</h1><p class="sub">${e(H[1])}</p>
-   <div class="lcard">${tabs}<form id="af" novalidate>${body}</form><div id="amsg"></div>${m==='in'&&T('lg_note')?`<small>${e(T('lg_note'))}</small>`:''}</div>
+   <div class="lcard">${tabs}<form id="af" novalidate>${body}</form>${m==='in'||m==='up'?`<button type="button" class="btn btn-out abtn" id="gbtn" style="width:100%;margin-top:12px"><b style="color:#4285f4">G</b>&nbsp; ${m==='up'?'สมัคร':'เข้าสู่ระบบ'}ด้วย Google</button>`:''}<div id="amsg"></div>${m==='in'&&T('lg_note')?`<small>${e(T('lg_note'))}</small>`:''}</div>
    <p class="sub" style="font-size:13px;margin-top:26px">${e(T('lg_terms'))}</p></div></div>`;
   if(msg)amsg(msg.t,msg.m);
   document.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{ST.authMode=b.dataset.m;pLogin()});
+  if($('gbtn'))$('gbtn').onclick=async()=>{const {error}=await db.auth.signInWithOAuth({provider:'google',options:{redirectTo:SITE_URL}});if(error)amsg('err',authMsg(error.message))};
+  if(m==='prof'){const md=ST.user.user_metadata||{},nf=$('af').querySelector('[name=name]');if(nf)nf.value=md.full_name||md.name||'';
+    $('pskip').onclick=()=>{sessionStorage.setItem('profSkip','1');location.hash='#/';render()};$('plo').onclick=logout}
   const rl=$('rl');if(rl)rl.onchange=()=>{const v=rl.value,t=v==='teacher';
     $('nml').textContent=t?'ชื่อครู (ชื่อ–นามสกุล)':'ชื่อ–นามสกุล';
     $('sidl').textContent=v==='guardian'?'เลขประจำตัวนักเรียนของบุตร/หลาน':'เลขประจำตัวนักเรียน';
@@ -780,7 +820,7 @@ function pLogin(){
     ev.preventDefault();const f=ev.target;
     if(!f.checkValidity()){f.reportValidity();return}
     const sb=$('asub');sb.disabled=true;
-    try{await ({in:doIn,up:doUp,forgot:doForgot,rec:doRec})[m](new FormData(f))}
+    try{await ({in:doIn,up:doUp,forgot:doForgot,code:doCode,prof:doProf,rec:doRec})[m](new FormData(f))}
     catch(x){amsg('err',authMsg(x&&x.message))}
     finally{const b2=$('asub');if(b2)b2.disabled=false}
   };
