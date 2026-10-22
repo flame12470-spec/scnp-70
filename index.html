@@ -242,10 +242,11 @@ const SUPABASE_KEY='sb_publishable_Z1zogpI9qqUlegxG816ncQ_eHeaiFvr';
 const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 /* ที่อยู่เว็บที่ลิงก์ในอีเมลจะพากลับมา (ต้องตรงกับ Redirect URLs ใน Supabase) — ถ้าเปิดไฟล์จากเครื่องจะไม่ส่ง ให้ใช้ Site URL แทน */
 const SITE_URL=/^https?:$/.test(location.protocol)?location.origin+location.pathname:undefined;
+const BAN_MSG='บัญชีของคุณถูกระงับเนื่องจากละเมิดกฎ กรุณาติดต่อแอดมินเพื่อปลดการระงับบัญชี หากไม่ปลดการระงับ ระบบจะลบบัญชีของคุณโดยอัตโนมัติภายใน 12 ชั่วโมง และคุณจะต้องสมัครใหม่อีกครั้ง';
 /* ลิงก์ในอีเมลหมดอายุ/ใช้ไปแล้ว: Supabase ส่ง error กลับมาทาง # — แจ้งเป็นภาษาไทย */
 if(/error_code=|error_description=/.test(location.hash+location.search)){
   const q=decodeURIComponent((location.hash+location.search).replace(/\+/g,' ')),ec=(q.match(/error_code=([^&]+)/)||[])[1]||'';
-  setTimeout(()=>toast(ec==='otp_expired'?'ลิงก์หมดอายุหรือถูกใช้ไปแล้ว กรุณาลองใหม่อีกครั้ง':/provider|oauth/i.test(q)?'เข้าสู่ระบบด้วย Google ไม่สำเร็จ — ตรวจว่าเปิดใช้ Google ใน Supabase แล้ว':'ลิงก์ไม่ถูกต้อง กรุณาลองใหม่'),800);
+  setTimeout(()=>toast(/banned/i.test(q)?BAN_MSG:ec==='otp_expired'?'ลิงก์หมดอายุหรือถูกใช้ไปแล้ว กรุณาลองใหม่อีกครั้ง':/provider|oauth/i.test(q)?'เข้าสู่ระบบด้วย Google ไม่สำเร็จ — ตรวจว่าเปิดใช้ Google ใน Supabase แล้ว':'ลิงก์ไม่ถูกต้อง กรุณาลองใหม่'),800);
   history.replaceState(null,'',location.pathname);
 }
 const BUCKET='ac-media';
@@ -433,7 +434,7 @@ function applyTheme(){
 /* ============ AUTH (อีเมล + รหัสผ่าน) ============ */
 /* ลิงก์ในอีเมลที่หมดอายุ/ใช้แล้ว จะส่ง error กลับมาทาง hash */
 (()=>{const h=location.hash;if(/error_description=/.test(h)){const q=new URLSearchParams(h.replace(/^#/,''));
-  sessionStorage.setItem('loginErr',q.get('error_code')==='otp_expired'?'ลิงก์หมดอายุหรือถูกใช้ไปแล้ว — กรุณาขอลิงก์ใหม่':(q.get('error_description')||'ลิงก์ไม่ถูกต้อง'));
+  sessionStorage.setItem('loginErr',/banned/i.test(q.get('error_description')||'')?BAN_MSG:q.get('error_code')==='otp_expired'?'ลิงก์หมดอายุหรือถูกใช้ไปแล้ว — กรุณาขอลิงก์ใหม่':(q.get('error_description')||'ลิงก์ไม่ถูกต้อง'));
   history.replaceState(null,'',location.pathname+'#/login')}})();
 async function refreshUser(session){
   if(session===undefined){const {data}=await db.auth.getSession();session=data.session}
@@ -459,7 +460,7 @@ const domainOk=em=>{let d=String(T('lg_domain')||'').trim().toLowerCase();if(!d)
 const MIN_PW=8;
 function authMsg(m){m=String(m||'');
   if(/invalid login/i.test(m))return 'อีเมลหรือรหัสผ่านไม่ถูกต้อง';
-  if(/banned/i.test(m))return 'บัญชีนี้ถูกระงับการใช้งาน — โปรดติดต่อสภานักเรียน';
+  if(/banned/i.test(m))return BAN_MSG;
   if(/provider.*not enabled|unsupported provider/i.test(m))return 'ยังไม่ได้เปิดใช้การเข้าสู่ระบบด้วย Google ใน Supabase';
   if(/not confirmed/i.test(m))return 'ยังไม่ได้ยืนยันอีเมล — กรุณากดลิงก์ในอีเมลที่ส่งให้ตอนสมัคร';
   if(/already (been )?registered/i.test(m))return 'อีเมลนี้สมัครไว้แล้ว — ลองเข้าสู่ระบบ หรือกด “ลืมรหัสผ่าน”';
