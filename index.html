@@ -145,6 +145,19 @@ footer li a:hover{text-decoration:underline}
 .steps{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin:12px 0 8px}.steps span{font-size:10.5px;text-align:center;padding:6px 2px;border-radius:8px;background:var(--soft);color:var(--muted);border-top:3px solid var(--line)}.steps span.on{background:#f0fdf4;color:#166534;border-color:var(--green);font-weight:600}
 .stats.s4{grid-template-columns:repeat(4,1fr)}
 @media(max-width:600px){.stats.s4{grid-template-columns:repeat(2,1fr)}.pg{padding-top:104px!important}}
+/* BAN POPUP */
+.mbox.ban{max-width:min(94vw,460px);text-align:center;animation:banin .35s cubic-bezier(.2,.9,.3,1.2)}
+@keyframes banin{from{opacity:0;transform:translateY(24px) scale(.94)}}
+.ban-h{background:linear-gradient(135deg,var(--red),#7a0a1c);color:#fff;padding:34px 24px 26px}
+.ban-ic{width:72px;height:72px;margin:0 auto 14px;border-radius:50%;background:rgba(255,255,255,.18);display:grid;place-items:center;animation:banpulse 1.8s infinite}
+.ban-ic .ic{width:36px;height:36px;stroke-width:2}
+@keyframes banpulse{0%{box-shadow:0 0 0 0 rgba(255,255,255,.45)}70%,100%{box-shadow:0 0 0 18px rgba(255,255,255,0)}}
+.ban-h h3{font-size:22px;margin:0}
+.mbox.ban .mt{padding:24px 26px 28px}
+.ban-warn{margin:16px 0;padding:14px 16px;border-radius:16px;background:#fff4f4;border:1px solid #f5c2c7;color:#8a1020;font-size:14.5px;text-align:left;display:flex;gap:10px;align-items:flex-start}
+.ban-warn b{white-space:nowrap}
+.ban-act{display:grid;gap:10px;margin-top:20px}
+.ban-act .btn{width:100%}
 /* ADMIN */
 .adm{display:grid;grid-template-columns:260px 1fr;min-height:100vh;background:#f4f4f6}
 .adm aside{background:#fff;border-right:1px solid var(--line);padding:22px 16px;position:sticky;top:0;height:100vh;overflow:auto}
@@ -246,7 +259,7 @@ const BAN_MSG='บัญชีของคุณถูกระงับเน�
 /* ลิงก์ในอีเมลหมดอายุ/ใช้ไปแล้ว: Supabase ส่ง error กลับมาทาง # — แจ้งเป็นภาษาไทย */
 if(/error_code=|error_description=/.test(location.hash+location.search)){
   const q=decodeURIComponent((location.hash+location.search).replace(/\+/g,' ')),ec=(q.match(/error_code=([^&]+)/)||[])[1]||'';
-  setTimeout(()=>toast(/banned/i.test(q)?BAN_MSG:ec==='otp_expired'?'ลิงก์หมดอายุหรือถูกใช้ไปแล้ว กรุณาลองใหม่อีกครั้ง':/provider|oauth/i.test(q)?'เข้าสู่ระบบด้วย Google ไม่สำเร็จ — ตรวจว่าเปิดใช้ Google ใน Supabase แล้ว':'ลิงก์ไม่ถูกต้อง กรุณาลองใหม่'),800);
+  setTimeout(()=>/banned/i.test(q)?showBanPopup():toast(ec==='otp_expired'?'ลิงก์หมดอายุหรือถูกใช้ไปแล้ว กรุณาลองใหม่อีกครั้ง':/provider|oauth/i.test(q)?'เข้าสู่ระบบด้วย Google ไม่สำเร็จ — ตรวจว่าเปิดใช้ Google ใน Supabase แล้ว':'ลิงก์ไม่ถูกต้อง กรุณาลองใหม่'),800);
   history.replaceState(null,'',location.pathname);
 }
 const BUCKET='ac-media';
@@ -476,6 +489,7 @@ function amsg(t,m,resend){const el=$('amsg');if(!el)return;
 async function doIn(f){
   const em=String(f.get('email')).trim();
   const {error}=await db.auth.signInWithPassword({email:em,password:f.get('password')});
+  if(error&&/banned/i.test(error.message))return showBanPopup();
   if(error)return amsg('err',authMsg(error.message),/not confirmed/i.test(error.message)?em:'');
   toast('เข้าสู่ระบบแล้ว');
 }
@@ -810,6 +824,15 @@ function openNews(id){
   $('mbg').onclick=ev=>{if(ev.target.id==='mbg')closeModal()};document.body.style.overflow='hidden';
 }
 function closeModal(){$('modalRoot').innerHTML='';document.body.style.overflow=''}
+function showBanPopup(){
+  const ln=String(T('line_url')||'').trim();
+  $('modalRoot').innerHTML=`<div class="modal" id="mbg"><div class="mbox ban" role="alertdialog" aria-modal="true"><div class="ban-h"><div class="ban-ic">${ic('alert')}</div><h3>บัญชีของคุณถูกระงับ</h3></div><div class="mt">
+   <p>บัญชีของคุณถูกระงับเนื่องจากละเมิดกฎของสภานักเรียน</p>
+   <div class="ban-warn"><span>⏰</span><span>หากไม่ปลดการระงับ ระบบจะ<b>ลบบัญชีของคุณโดยอัตโนมัติภายใน 12 ชั่วโมง</b> และคุณจะต้องสมัครใหม่อีกครั้ง</span></div>
+   <p class="sub" style="font-size:14px">กรุณาติดต่อแอดมินเพื่อขอปลดการระงับบัญชี</p>
+   <div class="ban-act">${ln?`<a class="btn btn-line" ${linkAttr(ln)}>💬 ติดต่อแอดมินทาง LINE</a>`:''}<button class="btn btn-dark" onclick="closeModal()">รับทราบ</button></div></div></div></div>`;
+  $('mbg').onclick=ev=>{if(ev.target.id==='mbg')closeModal()};document.body.style.overflow='hidden';
+}
 addEventListener('keydown',ev=>{if(ev.key==='Escape')closeModal()});
 
 async function sendFeedback(ev){
@@ -854,7 +877,7 @@ function pLogin(){
    <div class="eyebrow">${e(T('lg_eyebrow'))}</div><h1>${e(H[0])}</h1><p class="sub">${e(H[1])}</p>
    <div class="lcard">${tabs}<form id="af" novalidate>${body}</form>${m==='in'?`<button type="button" class="btn btn-dark abtn" id="gbtn" style="width:100%"><b style="background:#fff;color:#4285f4;border-radius:50%;width:22px;height:22px;display:inline-grid;place-items:center;margin-right:8px">G</b>เข้าสู่ระบบด้วย Google</button><p class="sub" style="font-size:13px;margin-top:12px">ใช้บัญชี Google ได้เลย — เข้าครั้งแรกจะให้กรอกชื่อและชั้น/ห้องก่อนเริ่มใช้งาน</p>`:''}<div id="amsg"></div>${m==='in'&&T('lg_note')?`<small>${e(T('lg_note'))}</small>`:''}</div>
    <p class="sub" style="font-size:13px;margin-top:26px">${e(T('lg_terms'))}</p></div></div>`;
-  if(msg)amsg(msg.t,msg.m);
+  if(msg&&msg.m===BAN_MSG)showBanPopup();else if(msg)amsg(msg.t,msg.m);
   document.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{ST.authMode=b.dataset.m;pLogin()});
   if($('gbtn'))$('gbtn').onclick=async()=>{const {error}=await db.auth.signInWithOAuth({provider:'google',options:{redirectTo:SITE_URL}});if(error)amsg('err',authMsg(error.message))};
   if(m==='prof'){const md=ST.user.user_metadata||{},nf=$('af').querySelector('[name=name]');if(nf)nf.value=md.full_name||md.name||'';
