@@ -329,7 +329,7 @@ const SCHEMA=[
  {g:'login',title:'หน้าเข้าสู่ระบบ',f:[
   ['lg_back','ข้อความย้อนกลับ','text','กลับหน้าแรก'],['lg_eyebrow','Eyebrow','text','Student Council'],
   ['lg_title','หัวข้อ','text','ยินดีต้อนรับกลับ'],['lg_sub','คำอธิบาย','text','เข้าสู่ระบบด้วยอีเมลและรหัสผ่านเพื่อเข้าถึงพื้นที่นักเรียน'],
-  ['lg_btn','ข้อความปุ่มเข้าสู่ระบบ','text','เข้าสู่ระบบ'],['lg_nav_btn','ข้อความปุ่มบนแถบเมนู','text','เข้าสู่ระบบ / สมัครใช้งาน'],
+  ['lg_btn','ข้อความปุ่มเข้าสู่ระบบ','text','เข้าสู่ระบบ'],['lg_nav_btn','ข้อความปุ่มบนแถบเมนู','text','เข้าสู่ระบบด้วย Google'],
   ['lg_domain','จำกัดโดเมนอีเมลที่สมัครได้ (เว้นว่าง = ทุกอีเมลสมัครได้)','text',''],
   ['lg_note','หมายเหตุใต้ปุ่ม','text','ยังไม่มีบัญชี? กด “สมัครใช้งาน” ด้านบน'],
   ['lg_grades','ตัวเลือกระดับชั้น (บรรทัดละ 1 ตัวเลือก)','textarea','ม.1\nม.2\nม.3\nม.4\nม.5\nม.6'],
@@ -508,12 +508,10 @@ function profCheck(f){
 }
 async function doProf(f){
   const c=profCheck(f);if(c.err)return amsg('err',c.err);
-  if(!pinOk(f))return amsg('err','PIN ต้องเป็นตัวเลข 6 หลัก');
   const rk=await rosterOk(c.data.role,c.data.student_id,c.data.full_name);if(rk)return amsg('err',rk);
   const row={user_id:ST.user.id,email:ST.user.email,...c.data};
   const {error}=await db.from('ac_profiles').insert(row);
   if(error)return amsg('err','บันทึกไม่สำเร็จ: '+error.message);
-  await db.rpc('ac_set_pin',{p_pin:String(f.get('pin'))});
   ST.profile=row;toast('บันทึกข้อมูลแล้ว');location.hash='#/';render();
 }
 /* ตรวจกับรายชื่อนักเรียนที่แอดมินนำเข้า (ฝั่งฐานข้อมูลตรวจซ้ำอีกชั้น) */
@@ -679,15 +677,12 @@ async function pMe(){
   const pr=ST.profile||{};
   $('app').innerHTML=`${navHtml(true)}<main class="wrap pg"><div class="head"><h2 class="h2">${ic('user')}โปรไฟล์ของฉัน</h2><p class="sub">${e(ST.user.email)}</p></div>
    <div class="panel"><b>ข้อมูลปัจจุบัน</b><p class="sub" style="margin-top:6px">${e(pr.full_name||'-')} · ${ROLE[pr.role]||'-'}${pr.student_id?' · รหัส '+e(pr.student_id):''}${pr.grade?' · '+e(pr.grade)+'/'+e(pr.room||''):''}</p></div>
-   <h3 class="dh">ขอแก้ไขข้อมูล</h3><div id="mereq"><p class="sub">กำลังโหลด...</p></div><h3 class="dh">PIN สำหรับกู้รหัสผ่าน</h3><div id="mepin"></div></main>${footer()}`;
+   <h3 class="dh">ขอแก้ไขข้อมูล</h3><div id="mereq"><p class="sub">กำลังโหลด...</p></div></main>${footer()}`;
   onscroll=null;
   const {data}=await db.from('ac_profile_req').select('*').eq('user_id',ST.user.id).order('created_at',{ascending:false}).limit(5);
   const pend=(data||[]).find(x=>x.status==='pending');
   const hist=(data||[]).filter(x=>x.status!=='pending').slice(0,3).map(x=>`<div class="list-row"><div><b>${e(x.full_name)}</b><small>${e(fd2(x.created_at))}${x.note?' · '+e(x.note):''}</small></div><span class="tag ${x.status==='approved'?'done':'new'}">${x.status==='approved'?'อนุมัติแล้ว':'ไม่อนุมัติ'}</span></div>`).join('');
   $('mereq').innerHTML=(pend?`<div class="okm">มีคำขอรออนุมัติ: ${e(pend.full_name)} · ${ROLE[pend.role]||''}${pend.grade?' · '+e(pend.grade)+'/'+e(pend.room||''):''} — รอแอดมินตรวจสอบ</div><p style="margin-top:12px"><button class="btn btn-out btn-sm" id="mecx">ยกเลิกคำขอ</button></p>`:`<form id="mef" novalidate>${profFields()}<div id="mem" class="err"></div><div><button class="btn btn-dark" type="submit">ส่งคำขอแก้ไข</button></div></form><p class="sub" style="font-size:13px;margin-top:10px">การแก้ไขต้องให้แอดมินอนุมัติก่อนจึงจะมีผล</p>`)+(hist?`<h3 class="dh">คำขอก่อนหน้า</h3><div class="panel">${hist}</div>`:'');
-  const hp=await db.rpc('ac_has_pin');
-  $('mepin').innerHTML=`<p class="sub" style="margin-bottom:10px">${hp.data?'ตั้ง PIN ไว้แล้ว — เปลี่ยนได้ด้านล่าง':'ยังไม่ได้ตั้ง PIN — ตั้งไว้เพื่อกู้รหัสผ่านเองเมื่อลืม'}</p><form id="mpf" style="display:grid;gap:10px;max-width:320px"><input name="pin" type="password" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="off" placeholder="PIN ใหม่ 6 หลัก" required style="padding:13px 14px;border:1px solid var(--line);border-radius:12px;font:inherit"><div><button class="btn btn-dark btn-sm" type="submit">${hp.data?'เปลี่ยน PIN':'ตั้ง PIN'}</button></div></form>`;
-  $('mpf').onsubmit=async ev=>{ev.preventDefault();const r=await db.rpc('ac_set_pin',{p_pin:String(new FormData(ev.target).get('pin'))});r.error?toast('ตั้งไม่สำเร็จ: '+r.error.message):(toast('บันทึก PIN แล้ว'),pMe())};
   if(pend){$('mecx').onclick=async()=>{await db.from('ac_profile_req').delete().eq('id',pend.id);pMe()};return}
   const F=$('mef'),q=n=>F.querySelector('[name='+n+']');
   q('role').value=pr.role||'student';q('name').value=pr.full_name||'';q('student_id').value=pr.student_id||'';q('grade').value=pr.grade||'';q('room').value=pr.room||'';
@@ -833,7 +828,7 @@ function bindRole(){const rl=$('rl');if(!rl)return;rl.onchange=()=>{const v=rl.v
   $('sidl').textContent=v==='guardian'?'เลขประจำตัวนักเรียนของบุตร/หลาน':'เลขประจำตัวนักเรียน';
   $('sidw').hidden=t;$('sid').disabled=t;$('grw').hidden=t;$('grw').querySelectorAll('select').forEach(x=>x.disabled=t)}}
 function pLogin(){
-  const np=needProfile(),m=ST.recovery?'rec':np?'prof':(ST.authMode||'in');
+  const np=needProfile(),m=np?'prof':'in';
   if(ST.user&&!ST.recovery&&!np){location.hash=ST.isAdmin?'#/admin':'#/';return}
   const ss=sessionStorage.getItem('loginErr');sessionStorage.removeItem('loginErr');
   const msg=ST.msg||(ss?{t:'err',m:ss}:null);ST.msg=null;
@@ -846,17 +841,17 @@ function pLogin(){
   const sel=(l,n,list)=>`<label>${l}<select name="${n}" required><option value="" disabled selected>เลือก</option>${String(list).split('\n').map(x=>x.trim()).filter(Boolean).map(x=>`<option>${e(x)}</option>`).join('')}</select></label>`;
   const btn=t=>`<button class="btn btn-dark abtn" id="asub">${e(t)}</button>`;
   let body='';
-  if(m==='in')body=fld('อีเมล','email','email','email')+fld('รหัสผ่าน','password','password','current-password')+btn(T('lg_btn'))+`<br><button type="button" class="alink" data-m="forgot">ลืมรหัสผ่าน?</button>`;
+  if(m==='in')body='';
   const pf=profFields();
   if(m==='up')body=pf+fld('อีเมล','email','email','email')+fld('รหัสผ่าน (อย่างน้อย '+MIN_PW+' ตัวอักษร)','password','password','new-password','minlength="'+MIN_PW+'"')+fld('ยืนยันรหัสผ่าน','password2','password','new-password')+pinFld()+btn('สมัครใช้งาน');
-  if(m==='prof')body=pf+(ST.user&&(ST.user.app_metadata||{}).provider==='google'?'<p class="sub" style="font-size:13px;margin:-4px 0 0">คุณเข้าด้วย Google จึงไม่ต้องตั้งรหัสผ่าน — PIN 6 หลักด้านล่างใช้ยืนยันตัวตนเมื่อต้องการตั้งรหัสผ่านใหม่ในภายหลัง</p>':'')+pinFld()+btn('บันทึกข้อมูล')+`<br><button type="button" class="alink" id="plo">ออกจากระบบ</button>`;
+  if(m==='prof')body=pf+btn('บันทึกข้อมูล')+`<br><button type="button" class="alink" id="plo">ออกจากระบบ</button>`;
   if(m==='forgot')body=fld('อีเมล','email','email','email')+fld('เลขประจำตัวนักเรียน','student_id','text','off','inputmode="numeric" maxlength="20"')+fld('PIN 6 หลัก (ที่ตั้งไว้ตอนสมัคร)','pin','password','off','inputmode="numeric" pattern="[0-9]{6}" maxlength="6"')+fld('รหัสผ่านใหม่','password','password','new-password','minlength="'+MIN_PW+'"')+fld('ยืนยันรหัสผ่านใหม่','password2','password','new-password')+btn('ตั้งรหัสผ่านใหม่')+`<br><button type="button" class="alink" data-m="in">← กลับไปเข้าสู่ระบบ</button>`;
   if(m==='rec')body=fld('รหัสผ่านใหม่','password','password','new-password','minlength="'+MIN_PW+'"')+fld('ยืนยันรหัสผ่านใหม่','password2','password','new-password')+btn('บันทึกรหัสผ่านใหม่');
-  const tabs=(m==='in'||m==='up')?`<div class="atabs"><button type="button" data-m="in" class="${m==='in'?'on':''}">เข้าสู่ระบบ</button><button type="button" data-m="up" class="${m==='up'?'on':''}">สมัครใช้งาน</button></div>`:'';
+  const tabs='';
   $('app').innerHTML=`<div class="page-login">${m==='rec'?'':`<a class="back" href="#/">← ${e(T('lg_back'))}</a>`}
   <div class="lbox">${safeImg(T('logo_url'))?`<div style="margin:0 auto"><img src="${e(safeImg(T('logo_url')))}" style="height:68px;margin:auto" alt=""></div>`:''}
    <div class="eyebrow">${e(T('lg_eyebrow'))}</div><h1>${e(H[0])}</h1><p class="sub">${e(H[1])}</p>
-   <div class="lcard">${tabs}<form id="af" novalidate>${body}</form>${m==='in'||m==='up'?`<button type="button" class="btn btn-out abtn" id="gbtn" style="width:100%;margin-top:12px"><b style="color:#4285f4">G</b>&nbsp; ${m==='up'?'สมัคร':'เข้าสู่ระบบ'}ด้วย Google</button>`:''}<div id="amsg"></div>${m==='in'&&T('lg_note')?`<small>${e(T('lg_note'))}</small>`:''}</div>
+   <div class="lcard">${tabs}<form id="af" novalidate>${body}</form>${m==='in'?`<button type="button" class="btn btn-dark abtn" id="gbtn" style="width:100%"><b style="background:#fff;color:#4285f4;border-radius:50%;width:22px;height:22px;display:inline-grid;place-items:center;margin-right:8px">G</b>เข้าสู่ระบบด้วย Google</button><p class="sub" style="font-size:13px;margin-top:12px">ใช้บัญชี Google ได้เลย — เข้าครั้งแรกจะให้กรอกชื่อและชั้น/ห้องก่อนเริ่มใช้งาน</p>`:''}<div id="amsg"></div>${m==='in'&&T('lg_note')?`<small>${e(T('lg_note'))}</small>`:''}</div>
    <p class="sub" style="font-size:13px;margin-top:26px">${e(T('lg_terms'))}</p></div></div>`;
   if(msg)amsg(msg.t,msg.m);
   document.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{ST.authMode=b.dataset.m;pLogin()});
@@ -1079,7 +1074,7 @@ async function admUsers(m){
    <input id="us" placeholder="ค้นหา ชื่อ / อีเมล / ชั้น / รหัสนักเรียน" style="margin-top:20px"><div class="card2" id="ul"></div>`;
   const draw=q=>{q=q.toLowerCase();const L=data.filter(u=>`${u.full_name||''} ${u.email} ${u.grade||''}/${u.room||''} ${u.student_id||''}`.toLowerCase().includes(q));
     $('ul').innerHTML=L.map(u=>{const em=String(u.email).toLowerCase(),adm=A.has(em),self=em===me,btn=(a,l,c)=>`<button class="btn btn-out btn-sm" ${c?`style="color:var(--red)"`:''} data-ua="${a}" data-id="${e(u.id)}" data-nm="${e(u.full_name||u.email)}">${l}</button>`;
-      return `<div class="list-row" style="align-items:flex-start;flex-wrap:wrap"><div style="min-width:0;flex:1 1 240px"><b>${e(u.full_name||'(ไม่ระบุชื่อ)')} ${adm?'<span class="tag">แอดมิน</span> ':''}${u.banned?'<span class="tag new">ถูกระงับ</span> ':''}<span class="tag ${u.confirmed?'done':'new'}">${u.confirmed?'ยืนยันแล้ว':'รอยืนยัน'}</span></b><small style="word-break:break-all">${e(u.email)}</small><small>${[ROLE[u.role],u.student_id?'รหัสนักเรียน '+e(u.student_id):'',u.grade?e(u.grade)+'/'+e(u.room||''):''].filter(Boolean).join(' · ')}</small><small>สมัคร ${e(fd2(u.created_at))}${u.last_sign_in_at?' · เข้าล่าสุด '+e(fd2(u.last_sign_in_at)):''}</small></div>${adm||self?'':`<div class="row2" style="flex-wrap:wrap">${btn('pw','เปลี่ยนรหัสผ่าน')}${btn(u.banned?'unban':'ban',u.banned?'ยกเลิกระงับ':'ระงับ')}${btn('del','ลบ',1)}</div>`}</div>`}).join('')||'<p class="sub">ไม่พบรายการ</p>';
+      return `<div class="list-row" style="align-items:flex-start;flex-wrap:wrap"><div style="min-width:0;flex:1 1 240px"><b>${e(u.full_name||'(ไม่ระบุชื่อ)')} ${adm?'<span class="tag">แอดมิน</span> ':''}${u.banned?'<span class="tag new">ถูกระงับ</span> ':''}<span class="tag ${u.confirmed?'done':'new'}">${u.confirmed?'ยืนยันแล้ว':'รอยืนยัน'}</span></b><small style="word-break:break-all">${e(u.email)}</small><small>${[ROLE[u.role],u.student_id?'รหัสนักเรียน '+e(u.student_id):'',u.grade?e(u.grade)+'/'+e(u.room||''):''].filter(Boolean).join(' · ')}</small><small>สมัคร ${e(fd2(u.created_at))}${u.last_sign_in_at?' · เข้าล่าสุด '+e(fd2(u.last_sign_in_at)):''}</small></div>${adm||self?'':`<div class="row2" style="flex-wrap:wrap">${btn(u.banned?'unban':'ban',u.banned?'ยกเลิกระงับ':'ระงับ')}${btn('del','ลบ',1)}</div>`}</div>`}).join('')||'<p class="sub">ไม่พบรายการ</p>';
     $('ul').querySelectorAll('[data-ua]').forEach(b=>b.onclick=()=>userAct(b.dataset.ua,b.dataset.id,b.dataset.nm,m))};
   draw('');$('us').oninput=ev=>draw(ev.target.value);
 }
