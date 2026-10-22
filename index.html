@@ -322,6 +322,7 @@ const SCHEMA=[
   ['ft_copy','ลิขสิทธิ์','text','© 2026 Student Council โรงเรียนนาเชือกพิทยาสรรค์']]},
  {g:'pages',title:'หน้าแผนที่ / แผนผังสถานที่',f:[['map_img','รูปแผนที่ / แผนผัง','image',''],['map_text','คำอธิบายใต้แผนที่','textarea','']]},
  {g:'sys',title:'เปิด/ปิดระบบจอง–ยืม',f:[
+  ['roster_on','ตรวจสอบรายชื่อนักเรียนตอนสมัคร/ตั้งโปรไฟล์ (ติ๊กออก = ปิดการตรวจ · ถ้ายังไม่ได้นำเข้ารายชื่อ จะไม่ตรวจ)','bool','true'],
   ['booking_on','เปิดให้นักเรียนจองพื้นที่ / ยืมอุปกรณ์ (ติ๊กออก = ปิดระบบ)','bool','true'],
   ['booking_msg','ข้อความเมื่อปิดระบบ','text','ขณะนี้ระบบจองและยืมอุปกรณ์ปิดให้บริการชั่วคราว'],
   ['bk_slots','ช่วงเวลาให้จอง (1 บรรทัด = 1 ช่วง)','textarea','พักเช้า (09:30–09:50)\nพักเที่ยง (12:00–12:50)\nหลังเลิกเรียน (15:30–17:00)']]},
@@ -487,6 +488,7 @@ async function doUp(f){
   }
   if(pw.length<MIN_PW)return amsg('err','รหัสผ่านต้องมีอย่างน้อย '+MIN_PW+' ตัวอักษร');
   if(pw!==f.get('password2'))return amsg('err','รหัสผ่านสองช่องไม่ตรงกัน');
+  const rk=await rosterOk(role,sid,String(f.get('name')||'').trim());if(rk)return amsg('err',rk);
   const {data,error}=await db.auth.signUp({email:em,password:pw,options:{emailRedirectTo:SITE_URL,data:{full_name:String(f.get('name')||'').trim(),grade:String(f.get('grade')||''),room:String(f.get('room')||''),role,student_id:role==='teacher'?'':sid}}});
   if(error)return amsg('err',authMsg(error.message));
   if(data.user&&Array.isArray(data.user.identities)&&data.user.identities.length===0)return amsg('err',authMsg('already registered'));
@@ -504,30 +506,26 @@ function profCheck(f){
 }
 async function doProf(f){
   const c=profCheck(f);if(c.err)return amsg('err',c.err);
+  const rk=await rosterOk(c.data.role,c.data.student_id,c.data.full_name);if(rk)return amsg('err',rk);
   const row={user_id:ST.user.id,email:ST.user.email,...c.data};
   const {error}=await db.from('ac_profiles').insert(row);
   if(error)return amsg('err','บันทึกไม่สำเร็จ: '+error.message);
   ST.profile=row;toast('บันทึกข้อมูลแล้ว');location.hash='#/';render();
 }
-/* ลืมรหัสผ่าน: ส่งรหัสยืนยันทางอีเมล แล้วกรอกรหัสในเว็บนี้ (ไม่ต้องกดลิงก์) */
-async function doForgot(f){
-  const em=String(f.get('email')).trim();
-  const {error}=await db.auth.resetPasswordForEmail(em);
-  if(error)return amsg('err',authMsg(error.message));
-  ST.fEmail=em;ST.authMode='code';ST.msg={t:'ok',m:'ส่งรหัสยืนยันไปที่ '+em+' แล้ว (ถ้าอีเมลนี้มีบัญชี) — ตรวจกล่องจดหมายรวมถึงสแปม รหัสมีอายุสั้น'};pLogin();
+/* ตรวจกับรายชื่อนักเรียนที่แอดมินนำเข้า (ฝั่งฐานข้อมูลตรวจซ้ำอีกชั้น) */
+async function rosterOk(role,sid,name){
+  const r=await db.rpc('ac_roster_check',{p_role:role,p_sid:sid,p_name:name});
+  return r.error||r.data!==false?'':'ไม่พบข้อมูลของคุณในรายชื่อนักเรียนของโรงเรียน — ตรวจเลขประจำตัวและชื่อ–นามสกุลให้ตรงกับทะเบียน หากถูกต้องแล้วโปรดติดต่อสภานักเรียน';
 }
-async function doCode(f){
-  const pw=String(f.get('password')),code=String(f.get('code')).replace(/\s/g,'');
+/* ลืมรหัสผ่านโดยไม่ใช้อีเมล: ยืนยันด้วยเลขประจำตัว + วันเกิดจากทะเบียนนักเรียน */
+async function doForgot(f){
+  const pw=String(f.get('password'));
   if(pw.length<MIN_PW)return amsg('err','รหัสผ่านต้องมีอย่างน้อย '+MIN_PW+' ตัวอักษร');
   if(pw!==f.get('password2'))return amsg('err','รหัสผ่านสองช่องไม่ตรงกัน');
-  ST.codeFlow=true;
-  try{
-    const v=await db.auth.verifyOtp({email:ST.fEmail,token:code,type:'recovery'});
-    if(v.error)return amsg('err',/expired|invalid/i.test(v.error.message)?'รหัสไม่ถูกต้องหรือหมดอายุ — กด “ขอรหัสใหม่” ได้':authMsg(v.error.message));
-    const u=await db.auth.updateUser({password:pw});
-    if(u.error){await db.auth.signOut();ST.user=null;ST.isAdmin=false;return amsg('err',authMsg(u.error.message))}
-    ST.authMode='in';ST.fEmail='';toast('ตั้งรหัสผ่านใหม่เรียบร้อยแล้ว');location.hash='#/';render();
-  }finally{ST.codeFlow=false}
+  const {data,error}=await db.rpc('ac_reset_pw_roster',{p_email:String(f.get('email')).trim(),p_sid:String(f.get('student_id')).trim(),p_birth:String(f.get('birth')||''),p_pw:pw});
+  if(error)return amsg('err',/find the function|schema cache/i.test(error.message)?'ยังไม่ได้รัน supabase_add_v2.sql ฉบับล่าสุดใน Supabase':authMsg(error.message));
+  if(data!=='ok')return amsg('err',data);
+  ST.authMode='in';ST.msg={t:'ok',m:'ตั้งรหัสผ่านใหม่เรียบร้อยแล้ว — เข้าสู่ระบบด้วยรหัสใหม่ได้เลย'};pLogin();
 }
 async function doRec(f){
   const pw=String(f.get('password'));
@@ -826,15 +824,14 @@ function bindRole(){const rl=$('rl');if(!rl)return;rl.onchange=()=>{const v=rl.v
   $('sidl').textContent=v==='guardian'?'เลขประจำตัวนักเรียนของบุตร/หลาน':'เลขประจำตัวนักเรียน';
   $('sidw').hidden=t;$('sid').disabled=t;$('grw').hidden=t;$('grw').querySelectorAll('select').forEach(x=>x.disabled=t)}}
 function pLogin(){
-  const np=needProfile(),m=ST.recovery?'rec':np?'prof':(ST.authMode==='code'&&!ST.fEmail?'forgot':ST.authMode||'in');
+  const np=needProfile(),m=ST.recovery?'rec':np?'prof':(ST.authMode||'in');
   if(ST.user&&!ST.recovery&&!np){location.hash=ST.isAdmin?'#/admin':'#/';return}
   const ss=sessionStorage.getItem('loginErr');sessionStorage.removeItem('loginErr');
   const msg=ST.msg||(ss?{t:'err',m:ss}:null);ST.msg=null;
   const H={in:[T('lg_title'),T('lg_sub')],
     up:['สมัครใช้งานครั้งแรก','สร้างบัญชีด้วยอีเมลและรหัสผ่าน หรือเข้าด้วย Google'],
     prof:['ตั้งชื่อและชั้น/ห้องก่อนเริ่มใช้งาน','ข้อมูลนี้ใช้ในเมนูต่าง ๆ ของเว็บ หากต้องการแก้ภายหลังต้องส่งคำขอให้แอดมินอนุมัติ'],
-    code:['กรอกรหัสยืนยัน','กรอกรหัสที่ได้รับทางอีเมล แล้วตั้งรหัสผ่านใหม่'],
-    forgot:['ลืมรหัสผ่าน','กรอกอีเมลที่สมัครไว้ ระบบจะส่งรหัสยืนยันไปให้ แล้วนำมากรอกในเว็บนี้เพื่อตั้งรหัสผ่านใหม่'],
+    forgot:['ลืมรหัสผ่าน','สำหรับนักเรียน: กรอกอีเมล เลขประจำตัว และวันเกิดให้ตรงกับทะเบียนโรงเรียน แล้วตั้งรหัสผ่านใหม่ได้เลย (ผู้ปกครอง/ครู ติดต่อแอดมิน)'],
     rec:['ตั้งรหัสผ่านใหม่','กรอกรหัสผ่านใหม่ของคุณ (อย่างน้อย '+MIN_PW+' ตัวอักษร)']}[m];
   const fld=(l,n,t,ac,x='')=>`<label>${l}<input name="${n}" type="${t}" autocomplete="${ac}" required ${x}></label>`;
   const sel=(l,n,list)=>`<label>${l}<select name="${n}" required><option value="" disabled selected>เลือก</option>${String(list).split('\n').map(x=>x.trim()).filter(Boolean).map(x=>`<option>${e(x)}</option>`).join('')}</select></label>`;
@@ -844,8 +841,7 @@ function pLogin(){
   const pf=profFields();
   if(m==='up')body=pf+fld('อีเมล','email','email','email')+fld('รหัสผ่าน (อย่างน้อย '+MIN_PW+' ตัวอักษร)','password','password','new-password','minlength="'+MIN_PW+'"')+fld('ยืนยันรหัสผ่าน','password2','password','new-password')+btn('สมัครใช้งาน');
   if(m==='prof')body=pf+btn('บันทึกข้อมูล')+`<br><button type="button" class="alink" id="plo">ออกจากระบบ</button>`;
-  if(m==='code')body=fld('รหัสยืนยัน (ที่ได้รับทางอีเมล)','code','text','one-time-code','inputmode="numeric" maxlength="10"')+fld('รหัสผ่านใหม่','password','password','new-password','minlength="'+MIN_PW+'"')+fld('ยืนยันรหัสผ่านใหม่','password2','password','new-password')+btn('ตั้งรหัสผ่านใหม่')+`<br><button type="button" class="alink" data-m="forgot">ขอรหัสใหม่</button>`;
-  if(m==='forgot')body=fld('อีเมล','email','email','email')+btn('ส่งรหัสยืนยัน')+`<br><button type="button" class="alink" data-m="in">← กลับไปเข้าสู่ระบบ</button>`;
+  if(m==='forgot')body=fld('อีเมล','email','email','email')+fld('เลขประจำตัวนักเรียน','student_id','text','off','inputmode="numeric" maxlength="20"')+fld('วันเกิด','birth','date','bday')+fld('รหัสผ่านใหม่','password','password','new-password','minlength="'+MIN_PW+'"')+fld('ยืนยันรหัสผ่านใหม่','password2','password','new-password')+btn('ตั้งรหัสผ่านใหม่')+`<br><button type="button" class="alink" data-m="in">← กลับไปเข้าสู่ระบบ</button>`;
   if(m==='rec')body=fld('รหัสผ่านใหม่','password','password','new-password','minlength="'+MIN_PW+'"')+fld('ยืนยันรหัสผ่านใหม่','password2','password','new-password')+btn('บันทึกรหัสผ่านใหม่');
   const tabs=(m==='in'||m==='up')?`<div class="atabs"><button type="button" data-m="in" class="${m==='in'?'on':''}">เข้าสู่ระบบ</button><button type="button" data-m="up" class="${m==='up'?'on':''}">สมัครใช้งาน</button></div>`:'';
   $('app').innerHTML=`<div class="page-login">${m==='rec'?'':`<a class="back" href="#/">← ${e(T('lg_back'))}</a>`}
@@ -863,14 +859,14 @@ function pLogin(){
     ev.preventDefault();const f=ev.target;
     if(!f.checkValidity()){f.reportValidity();return}
     const sb=$('asub');sb.disabled=true;
-    try{await ({in:doIn,up:doUp,forgot:doForgot,code:doCode,prof:doProf,rec:doRec})[m](new FormData(f))}
+    try{await ({in:doIn,up:doUp,forgot:doForgot,prof:doProf,rec:doRec})[m](new FormData(f))}
     catch(x){amsg('err',authMsg(x&&x.message))}
     finally{const b2=$('asub');if(b2)b2.disabled=false}
   };
 }
 
 /* ============ ADMIN ============ */
-const NAVS=[['เนื้อหาเว็บไซต์',SCHEMA.map(s=>[s.g,s.title])],['ข้อมูล',[['ac_news','ข่าวประชาสัมพันธ์'],['ac_events','กิจกรรม / ปฏิทิน'],['ac_surveys','แบบสอบถาม'],['ac_socials','โซเชียล / ช่องทางติดต่อ'],['ac_links','ลิงก์ฟุตเตอร์']]],['ระบบใหม่',[['ac_achv','Student of the Month / คลังผลงาน'],['ac_res','พื้นที่ / อุปกรณ์ให้ยืม'],['ac_book','รายการจอง / ยืม'],['ac_budget','งบประมาณสภาฯ'],['ac_issues','ติดตามเรื่องร้องเรียน'],['ac_pages','หน้าเมนูที่เพิ่มเอง']]],['หน้าต่าง ๆ',[['ac_council','ทำเนียบสภา'],['ac_lost','ของหาย–ได้คืน'],['ac_summary','สรุปก่อนสอบ']]],['ระบบ',[['users','สมาชิกในระบบ'],['preq','คำขอแก้ไขโปรไฟล์'],['visits','สถิติผู้เข้าชม'],['inbox','กล่องข้อความ / เรื่องที่ส่งเข้ามา'],['admins','ผู้ดูแลระบบ']]]];
+const NAVS=[['เนื้อหาเว็บไซต์',SCHEMA.map(s=>[s.g,s.title])],['ข้อมูล',[['ac_news','ข่าวประชาสัมพันธ์'],['ac_events','กิจกรรม / ปฏิทิน'],['ac_surveys','แบบสอบถาม'],['ac_socials','โซเชียล / ช่องทางติดต่อ'],['ac_links','ลิงก์ฟุตเตอร์']]],['ระบบใหม่',[['ac_achv','Student of the Month / คลังผลงาน'],['ac_res','พื้นที่ / อุปกรณ์ให้ยืม'],['ac_book','รายการจอง / ยืม'],['ac_budget','งบประมาณสภาฯ'],['ac_issues','ติดตามเรื่องร้องเรียน'],['ac_pages','หน้าเมนูที่เพิ่มเอง']]],['หน้าต่าง ๆ',[['ac_council','ทำเนียบสภา'],['ac_lost','ของหาย–ได้คืน'],['ac_summary','สรุปก่อนสอบ']]],['ระบบ',[['users','สมาชิกในระบบ'],['preq','คำขอแก้ไขโปรไฟล์'],['roster','รายชื่อนักเรียน (ตรวจสอบ)'],['visits','สถิติผู้เข้าชม'],['inbox','กล่องข้อความ / เรื่องที่ส่งเข้ามา'],['admins','ผู้ดูแลระบบ']]]];
 async function pAdmin(){
   if(!ST.user){
     sessionStorage.setItem('loginErr','กรุณาเข้าสู่ระบบก่อนเข้าพื้นที่ผู้ดูแล');
@@ -903,6 +899,7 @@ async function renderAdminTab(){
   if(TABLES[t])return admTable(t,m);
   if(t==='users')return admUsers(m);
   if(t==='preq')return admPReq(m);
+  if(t==='roster')return admRoster(m);
   if(t==='visits')return admVisits(m);
   if(t==='inbox')return admInbox(m);
   if(t==='admins')return admAdmins(m);
@@ -1004,6 +1001,50 @@ async function admTable(t,m){
     toast('ลบแล้ว');await loadPublic();admTable(t,m);
   });
 }
+const loadXlsx=()=>window.XLSX?Promise.resolve():new Promise((ok,no)=>{const x=document.createElement('script');x.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';x.onload=ok;x.onerror=()=>no(new Error('โหลดตัวอ่านไฟล์ Excel ไม่ได้ (ตรวจอินเทอร์เน็ต)'));document.head.appendChild(x)});
+const normDob=v=>{v=String(v||'').trim();const d=v.match(/\d+/g);if(!d||d.length<3)return v;let [a,b,c]=d.map(Number),y,mo,dd;if(a>31){y=a;mo=b;dd=c}else{dd=a;mo=b;y=c}if(y>2400)y-=543;return `${y}-${String(mo).padStart(2,'0')}-${String(dd).padStart(2,'0')}`};
+function parseRoster(grid){
+  const re={sid:/เลขประจำตัว|รหัส|student|^id$/i,last:/นามสกุล|last/i,full:/ชื่อ.*สกุล|full/i,first:/ชื่อ|name/i,grade:/ชั้น|ระดับ|grade/i,room:/ห้อง|room/i,birth:/วันเกิด|birth|dob/i,pre:/คำนำหน้า|prefix/i};
+  const hi=grid.findIndex(r=>r.some(c=>re.sid.test(String(c))));if(hi<0)throw new Error('ไม่พบหัวคอลัมน์ “เลขประจำตัว” ในแถวใดเลย');
+  const col={};grid[hi].forEach((c,i)=>{c=String(c).trim();if(!c)return;
+    const k=re.pre.test(c)?'pre':re.sid.test(c)?'sid':re.last.test(c)?'last':re.full.test(c)?'full':re.birth.test(c)?'birth':re.room.test(c)?'room':re.grade.test(c)?'grade':re.first.test(c)?'first':'';
+    if(k&&col[k]===undefined)col[k]=i});
+  if(col.sid===undefined||(col.full===undefined&&col.first===undefined))throw new Error('ต้องมีคอลัมน์ เลขประจำตัว และ ชื่อ (หรือ ชื่อ-นามสกุล)');
+  const g=(r,k)=>col[k]===undefined?'':String(r[col[k]]??'').trim();
+  return grid.slice(hi+1).map(r=>{let grade=g(r,'grade'),room=g(r,'room');if(!room&&/\//.test(grade)){[grade,room]=grade.split('/').map(x=>x.trim())}
+    const full=col.full!==undefined?g(r,'full'):`${g(r,'first')} ${g(r,'last')}`.trim();
+    return {student_id:g(r,'sid'),full_name:(g(r,'pre')&&col.full===undefined?g(r,'pre')+' ':'')+full,grade,room,birth:normDob(g(r,'birth'))}}).filter(x=>x.student_id&&x.full_name);
+}
+async function admRoster(m){
+  if(!ST.quiet)m.innerHTML='<p class="sub">กำลังโหลด...</p>';
+  const c=await db.from('ac_roster').select('*',{count:'exact'}).order('student_id').limit(10);
+  if(c.error){m.innerHTML=`<h1>รายชื่อนักเรียน</h1><div class="card2">โหลดไม่ได้: ${e(c.error.message)}<br><small class="sub">รัน supabase_add_v2.sql ฉบับล่าสุดก่อน</small></div>`;return}
+  m.innerHTML=`<h1>รายชื่อนักเรียน (ตรวจสอบผู้สมัคร)</h1><p class="sub">นำเข้ารายชื่อนักเรียนทั้งโรงเรียนจากไฟล์ Excel — ผู้สมัครต้องมีเลขประจำตัวและชื่อตรงกับรายชื่อนี้จึงจะใช้งานได้ (ผู้ปกครองต้องใส่เลขประจำตัวของบุตร/หลานที่มีในรายชื่อ)</p>
+  <div class="stats"><div class="ev"><b>${Number(c.count||0).toLocaleString('th-TH')}</b><span class="sub">นักเรียนในรายชื่อ</span></div></div>
+  <div class="card2" style="margin-top:16px"><b>นำเข้าไฟล์ Excel / CSV</b>
+   <p class="sub" style="font-size:13px;margin:6px 0 12px">แถวแรกเป็นหัวคอลัมน์ ต้องมี: <b>เลขประจำตัว</b> · <b>ชื่อ-นามสกุล</b> (หรือแยก ชื่อ / นามสกุล) · ชั้น · ห้อง · <b>วันเกิด</b> (ใส่เพื่อให้นักเรียนตั้งรหัสผ่านใหม่เองได้ — ไม่ใส่ก็ได้ แต่จะรีเซ็ตเองไม่ได้)</p>
+   <input type="file" id="rf" accept=".xlsx,.xls,.csv"><div id="rp" class="sub" style="margin:12px 0"></div>
+   <label style="display:flex;gap:8px;align-items:center;margin-bottom:12px"><input type="checkbox" id="rrep" checked> แทนที่รายชื่อเดิมทั้งหมด (ไม่ติ๊ก = เพิ่ม/อัปเดตเฉพาะที่อยู่ในไฟล์)</label>
+   <button class="btn btn-dark" id="rgo" disabled>นำเข้า</button> <button class="btn btn-out" id="rclr" ${c.count?'':'disabled'} style="color:var(--red)">ล้างรายชื่อทั้งหมด</button></div>
+  ${c.count?`<h3 class="dh">ตัวอย่างรายชื่อ (10 แถวแรก)</h3><div class="card2">${c.data.map(x=>`<div class="list-row"><div><b>${e(x.student_id)} · ${e(x.full_name)}</b><small>${e(x.grade||'')}${x.room?'/'+e(x.room):''}${x.birth?' · มีวันเกิด':' · ไม่มีวันเกิด'}</small></div></div>`).join('')}</div>
+  <h3 class="dh">สมาชิกเดิมที่ไม่ตรงรายชื่อ</h3><div class="card2"><p class="sub" style="font-size:13px;margin-bottom:10px">ตรวจสมาชิกที่สมัครไว้ก่อนนำเข้ารายชื่อ (ไม่รวมครูและแอดมิน)</p><button class="btn btn-out btn-sm" id="rchk">ตรวจสอบตอนนี้</button><div id="rum" style="margin-top:12px"></div></div>`:''}`;
+  let rows=[];
+  $('rf').onchange=async ev=>{const fl=ev.target.files[0];rows=[];$('rgo').disabled=true;if(!fl)return;$('rp').textContent='กำลังอ่านไฟล์...';
+    try{await loadXlsx();const wb=XLSX.read(await fl.arrayBuffer(),{type:'array',cellDates:true}),ws=wb.Sheets[wb.SheetNames[0]];
+      rows=parseRoster(XLSX.utils.sheet_to_json(ws,{header:1,raw:false,defval:'',dateNF:'yyyy-mm-dd'}));
+      $('rp').innerHTML=rows.length?`พบ <b>${rows.length}</b> รายชื่อ · ตัวอย่าง: ${e(rows[0].student_id)} ${e(rows[0].full_name)} ${e(rows[0].grade)}/${e(rows[0].room)} ${rows[0].birth?'('+e(rows[0].birth)+')':''}`:'ไม่พบรายชื่อในไฟล์';$('rgo').disabled=!rows.length}
+    catch(x){$('rp').textContent='อ่านไฟล์ไม่ได้: '+x.message}};
+  $('rgo').onclick=async()=>{const rep=$('rrep').checked;if(rep&&c.count&&!confirm('แทนที่รายชื่อเดิม '+c.count+' รายการด้วยไฟล์นี้?'))return;
+    $('rgo').disabled=true;
+    for(let i=0;i<rows.length;i+=500){$('rp').textContent=`กำลังนำเข้า ${Math.min(i+500,rows.length)}/${rows.length}...`;
+      const r=await db.rpc('ac_roster_import',{rows:rows.slice(i,i+500),replace_all:rep&&i===0});
+      if(r.error){alert('นำเข้าไม่สำเร็จ\n\n'+r.error.message);$('rgo').disabled=false;return}}
+    toast('นำเข้า '+rows.length+' รายชื่อแล้ว');admRoster(m)};
+  $('rclr').onclick=async()=>{if(!confirm('ล้างรายชื่อทั้งหมด? (ระบบจะเลิกตรวจจนกว่าจะนำเข้าใหม่)'))return;await db.from('ac_roster').delete().neq('student_id','');admRoster(m)};
+  if($('rchk'))$('rchk').onclick=async()=>{$('rum').textContent='กำลังตรวจ...';const r=await db.rpc('ac_roster_unmatched');if(r.error){$('rum').textContent=r.error.message;return}
+    $('rum').innerHTML=r.data.length?`<p><b>${r.data.length}</b> คนไม่ตรงรายชื่อ</p>${r.data.map(x=>`<div class="list-row"><div><b>${e(x.full_name)}</b><small style="word-break:break-all">${e(x.email||'')} · ${ROLE[x.role]||''} · รหัส ${e(x.student_id||'')}</small></div></div>`).join('')}<p style="margin-top:12px"><button class="btn btn-out btn-sm" id="rban" style="color:var(--red)">ระงับทั้งหมดที่ไม่ตรง</button></p>`:'<p class="okm">สมาชิกทุกคนตรงกับรายชื่อ</p>';
+    if($('rban'))$('rban').onclick=async()=>{if(!confirm('ระงับ '+r.data.length+' บัญชีนี้? (ยกเลิกระงับได้ที่เมนูสมาชิกในระบบ)'))return;const b=await db.rpc('ac_roster_ban_unmatched');b.error?alert(b.error.message):toast('ระงับแล้ว '+b.data+' บัญชี');admRoster(m)}};
+}
 async function admPReq(m){
   if(!ST.quiet)m.innerHTML='<p class="sub">กำลังโหลด...</p>';
   const {data,error}=await db.from('ac_profile_req').select('*').order('created_at',{ascending:false}).limit(100);
@@ -1075,7 +1116,7 @@ async function liveRefresh(kick){
   liveBusy=true;
   try{
     if(r==='/admin'){
-      if(!ST.isAdmin||SCHEMA.find(x=>x.g===ST.tab)||typing())return;
+      if(!ST.isAdmin||SCHEMA.find(x=>x.g===ST.tab)||ST.tab==='roster'||typing())return;
       if(!kick&&!['users','visits'].includes(ST.tab))return; /* ตารางอื่นอัปเดตผ่าน Realtime อยู่แล้ว */
       const y0=scrollY;ST.quiet=true;
       try{await renderAdminTab()}finally{ST.quiet=false}
